@@ -32,12 +32,16 @@ interface DeviceCache {
   color1Characteristic: BluetoothRemoteGATTCharacteristic;
 }
 
+interface DevicesCache {
+  [deviceId: string]: DeviceCache;
+}
+
 const initialState: DevicesSlice = {
   connecting: false,
   devices: [],
 };
 
-const devicesCache: { [name: string]: DeviceCache } = {};
+const devicesCache: DevicesCache = {};
 
 export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch }) => {
   if (!navigator.bluetooth) {
@@ -173,13 +177,11 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
 export const disconnectDevice = createAsyncThunk(
   'devices/disconnect',
   async (name: string) => {
-    const device = devicesCache[name];
-
-    if (!device) {
+    if (!devicesCache[name]) {
       throw new Error('Device not found');
     }
 
-    await device.bleDevice.gatt?.disconnect();
+    await devicesCache[name].bleDevice.gatt?.disconnect();
 
     delete devicesCache[name];
   },
@@ -188,30 +190,26 @@ export const disconnectDevice = createAsyncThunk(
 export const setMode = createAsyncThunk(
   'devices/setMode',
   async ({ name, mode }: { name: string; mode: number }) => {
-    const cachedDevice = devicesCache[name];
-
-    if (!cachedDevice) {
+    if (devicesCache[name]) {
       throw new Error('Device not found');
     }
 
-    const newMode = Uint8Array.of(mode);
-
-    await cachedDevice.modeCharacteristic.writeValueWithoutResponse(newMode);
+    await devicesCache[name].modeCharacteristic.writeValueWithoutResponse(
+      Uint8Array.of(mode),
+    );
   },
 );
 
 export const setColor1 = createAsyncThunk(
   'devices/setColor1',
-  async (arg: { name: string; color: Color }) => {
-    const cachedDevice = devicesCache[arg.name];
-
-    if (!cachedDevice) {
+  async ({ name, color }: { name: string; color: Color }) => {
+    if (!devicesCache[name]) {
       throw new Error('Device not found');
     }
 
-    const color = Uint8Array.of(...arg.color);
-
-    await cachedDevice.color1Characteristic.writeValueWithoutResponse(color);
+    await devicesCache[name].color1Characteristic.writeValueWithoutResponse(
+      Uint8Array.of(...color),
+    );
   },
 );
 
