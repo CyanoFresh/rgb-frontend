@@ -1,5 +1,5 @@
-import { useAppDispatch, useAppSelector } from './app/hooks';
-import { closeNotification } from './features/notification/notificationSlice';
+import { useAppDispatch, useAppSelector } from '../app/hooks';
+import { closeNotification } from '../features/notification/notificationSlice';
 import { Alert, Snackbar } from '@mui/material';
 import React from 'react';
 

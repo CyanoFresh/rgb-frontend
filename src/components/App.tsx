@@ -1,19 +1,20 @@
 import React from 'react';
-import '@fontsource/roboto/300.css';
-import '@fontsource/roboto/400.css';
-import '@fontsource/roboto/500.css';
-import '@fontsource/roboto/700.css';
 import { Content } from './Content';
 import { TopBar } from './TopBar';
 import { Notification } from './Notification';
+import { ThemeProvider } from '@mui/material/styles';
+import { theme } from '../app/theme';
+import { CssBaseline } from '@mui/material';
 
 function App() {
   return (
-    <>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+
       <TopBar />
       <Content />
       <Notification />
-    </>
+    </ThemeProvider>
   );
 }
 
