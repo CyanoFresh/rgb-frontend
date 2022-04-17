@@ -5,6 +5,8 @@ import '@fontsource/inter/latin-400.css';
 import '@fontsource/inter/latin-500.css';
 import '@fontsource/inter/latin-700.css';
 
+const defaultTheme = createTheme();
+
 export const theme = responsiveFontSizes(
   createTheme({
     palette: {
@@ -29,13 +31,27 @@ export const theme = responsiveFontSizes(
     },
     components: {
       MuiButton: {
-        styleOverrides: {
-          root: {
-            borderRadius: 24,
-            padding: '8px 24px',
+        variants: [
+          {
+            props: { variant: 'round' },
+            style: {
+              borderRadius: defaultTheme.spacing(3),
+              padding: defaultTheme.spacing(1, 3),
+            },
           },
-        },
+        ],
+        // styleOverrides: {
+        //   round: {
+        //     ...defaultTheme.components?.MuiButton,
+        //   },
+        // },
       },
     },
   }),
 );
+
+declare module '@mui/material/Button' {
+  interface ButtonPropsVariantOverrides {
+    round: true;
+  }
+}

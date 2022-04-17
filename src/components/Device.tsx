@@ -2,7 +2,7 @@ import { useAppDispatch } from '../app/hooks';
 import { DeviceInfo, disconnectDevice, setMode } from '../features/devices/devicesSlice';
 import { Button, Card, CardContent, CardHeader, Menu, MenuItem } from '@mui/material';
 import React from 'react';
-import { BatteryIcon } from '../features/devices/BatteryIcon';
+import { BatteryIcon } from './BatteryIcon';
 import { modeNames } from '../features/devices/constants';
 
 type DeviceParams = {

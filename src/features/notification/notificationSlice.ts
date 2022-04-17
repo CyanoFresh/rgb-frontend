@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { addDevice } from '../devices/devicesSlice';
+import { addDevice, deviceDisconnected } from '../devices/devicesSlice';
 
 interface NotificationSlice {
   open: boolean;
@@ -31,6 +31,11 @@ const notificationSlice = createSlice({
       state.open = true;
       state.message = action.error.message as string;
       state.type = 'error';
+    });
+    builder.addCase(deviceDisconnected, (state, action) => {
+      state.open = true;
+      state.message = `Device ${action.payload} disconnected`;
+      state.type = 'info';
     });
   },
 });

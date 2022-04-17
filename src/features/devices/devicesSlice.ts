@@ -1,10 +1,11 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
+  BATTERY_CHARACTERISTIC_UUID,
+  BATTERY_SERVICE_UUID,
   COLOR1_CHARACTERISTIC_UUID,
   MODE_CHARACTERISTIC_UUID,
   MODE_SERVICE_UUID,
 } from './constants';
-import { openNotification } from '../notification/notificationSlice';
 
 export enum DeviceMode {
   STATIC,
@@ -96,20 +97,30 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
     delete devicesCache[device.name!];
 
     dispatch(deviceDisconnected(device.name));
-    dispatch(
-      openNotification({
-        type: 'info',
-        message: `Device ${device.name} disconnected`,
-      }),
-    );
   };
 
-  const modeService = await device.gatt.getPrimaryService(MODE_SERVICE_UUID);
+  const [modeService, batteryService] = await Promise.all([
+    device.gatt.getPrimaryService(MODE_SERVICE_UUID),
+    device.gatt.getPrimaryService(BATTERY_SERVICE_UUID),
+  ]);
 
-  const modeCharacteristic = await modeService.getCharacteristic(
-    MODE_CHARACTERISTIC_UUID,
-  );
-  await modeCharacteristic.startNotifications();
+  console.log(`services fetched`);
+
+  const [modeCharacteristic, color1Characteristic, batteryCharacteristic] =
+    await Promise.all([
+      modeService.getCharacteristic(MODE_CHARACTERISTIC_UUID),
+      modeService.getCharacteristic(COLOR1_CHARACTERISTIC_UUID),
+      batteryService.getCharacteristic(BATTERY_CHARACTERISTIC_UUID),
+    ]);
+
+  console.log(`characteristics fetched`);
+
+  devicesCache[device.name!] = {
+    bleDevice: device,
+    modeCharacteristic,
+    color1Characteristic,
+  };
+
   modeCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
     console.log('mode characteristicvaluechanged');
 
@@ -124,20 +135,13 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
       }),
     );
   });
-  await modeCharacteristic.readValue();
 
-  const color1Characteristic = await modeService.getCharacteristic(
-    COLOR1_CHARACTERISTIC_UUID,
-  );
-  await color1Characteristic.startNotifications();
   color1Characteristic.addEventListener('characteristicvaluechanged', (e) => {
     console.log('color1 characteristicvaluechanged');
 
     const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
 
     const color1 = Array.from(new Uint8Array(value.buffer));
-
-    console.log(color1);
 
     dispatch(
       updateDevice({
@@ -146,11 +150,7 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
       }),
     );
   });
-  await color1Characteristic.readValue();
 
-  const batteryService = await device.gatt.getPrimaryService('battery_service');
-  const batteryCharacteristic = await batteryService.getCharacteristic('battery_level');
-  await batteryCharacteristic.startNotifications();
   batteryCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
     console.log('battery characteristicvaluechanged');
 
@@ -165,13 +165,22 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
       }),
     );
   });
-  await batteryCharacteristic.readValue();
 
-  devicesCache[device.name!] = {
-    bleDevice: device,
-    modeCharacteristic,
-    color1Characteristic,
-  };
+  await Promise.all([
+    modeCharacteristic.startNotifications(),
+    color1Characteristic.startNotifications(),
+    batteryCharacteristic.startNotifications(),
+  ]);
+
+  console.log(`notifications started`);
+
+  await Promise.all([
+    modeCharacteristic.readValue(),
+    color1Characteristic.readValue(),
+    batteryCharacteristic.readValue(),
+  ]);
+
+  console.log(`values read`);
 });
 
 export const disconnectDevice = createAsyncThunk(
@@ -190,7 +199,7 @@ export const disconnectDevice = createAsyncThunk(
 export const setMode = createAsyncThunk(
   'devices/setMode',
   async ({ name, mode }: { name: string; mode: number }) => {
-    if (devicesCache[name]) {
+    if (!devicesCache[name]) {
       throw new Error('Device not found');
     }
 
