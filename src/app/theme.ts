@@ -32,7 +32,7 @@ export const theme = responsiveFontSizes(
         styleOverrides: {
           root: {
             borderRadius: 24,
-            padding: '6px 20px',
+            padding: '8px 24px',
           },
         },
       },

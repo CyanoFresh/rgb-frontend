@@ -62,7 +62,7 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
   } catch (e) {
     // Prettify the error message
     if (e instanceof DOMException && e.name === 'NotFoundError') {
-      throw new Error('You have not selected a device');
+      throw new Error(e.message);
     }
 
     throw e;
