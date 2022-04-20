@@ -31,27 +31,13 @@ export const theme = responsiveFontSizes(
     },
     components: {
       MuiButton: {
-        variants: [
-          {
-            props: { variant: 'round' },
-            style: {
-              borderRadius: defaultTheme.spacing(3),
-              padding: defaultTheme.spacing(1, 3),
-            },
+        styleOverrides: {
+          contained: {
+            borderRadius: defaultTheme.spacing(3),
+            padding: defaultTheme.spacing(1, 3),
           },
-        ],
-        // styleOverrides: {
-        //   round: {
-        //     ...defaultTheme.components?.MuiButton,
-        //   },
-        // },
+        },
       },
     },
   }),
 );
-
-declare module '@mui/material/Button' {
-  interface ButtonPropsVariantOverrides {
-    round: true;
-  }
-}

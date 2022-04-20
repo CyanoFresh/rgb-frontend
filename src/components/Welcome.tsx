@@ -20,9 +20,9 @@ export function Welcome() {
           Welcome
         </Typography>
         <Typography variant="body1" sx={{ mt: 3, mb: 4 }}>
-          Turn on Bluetooth and connect a new device
+          Turn on Bluetooth and connect first device
         </Typography>
-        <Button onClick={() => dispatch(addDevice())} variant="round" size="large">
+        <Button onClick={() => dispatch(addDevice())} variant="contained" size="large">
           Connect
         </Button>
       </div>
