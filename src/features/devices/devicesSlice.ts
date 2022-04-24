@@ -25,6 +25,7 @@ export interface DeviceInfo {
 export interface DevicesSlice {
   connecting: boolean;
   devices: DeviceInfo[];
+  selectedDeviceIndex: number | null;
 }
 
 interface DeviceCache {
@@ -40,6 +41,7 @@ interface DevicesCache {
 const initialState: DevicesSlice = {
   connecting: false,
   devices: [],
+  selectedDeviceIndex: null,
 };
 
 const devicesCache: DevicesCache = {};
@@ -227,6 +229,7 @@ export const devicesSlice = createSlice({
   initialState,
   reducers: {
     deviceConnected: (state, action: PayloadAction<DeviceInfo>) => {
+      state.selectedDeviceIndex = state.devices.length;
       state.devices.push(action.payload);
     },
     deviceDisconnected(state, action) {
@@ -246,6 +249,9 @@ export const devicesSlice = createSlice({
         ...action.payload,
       };
     },
+    selectDevice(state, action) {
+      state.selectedDeviceIndex = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -261,6 +267,7 @@ export const devicesSlice = createSlice({
   },
 });
 
-export const { deviceConnected, deviceDisconnected, updateDevice } = devicesSlice.actions;
+export const { deviceConnected, deviceDisconnected, updateDevice, selectDevice } =
+  devicesSlice.actions;
 
 export default devicesSlice.reducer;

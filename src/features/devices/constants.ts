@@ -1,3 +1,8 @@
+import React from 'react';
+import PaletteIcon from '@mui/icons-material/Palette';
+import RainbowIcon from '@mui/icons-material/Looks';
+import StrobeIcon from '@mui/icons-material/InvertColors';
+
 export const BATTERY_SERVICE_UUID = 'battery_service';
 export const BATTERY_CHARACTERISTIC_UUID = 'battery_level';
 export const MODE_SERVICE_UUID = 'd6694b21-880d-4b4a-adae-256cc1f01e7b';
@@ -9,3 +14,27 @@ export const modeNames: { [key: number]: string } = {
   1: 'Rainbow',
   2: 'Strobe',
 };
+
+export interface Mode {
+  name: string;
+  value: number;
+  icon: React.ElementType;
+}
+
+export const modes: Mode[] = [
+  {
+    name: 'Static',
+    value: 0,
+    icon: PaletteIcon,
+  },
+  {
+    name: 'Rainbow',
+    value: 1,
+    icon: RainbowIcon,
+  },
+  {
+    name: 'Strobe',
+    value: 2,
+    icon: StrobeIcon,
+  },
+];

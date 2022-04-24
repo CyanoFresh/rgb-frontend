@@ -1,10 +1,7 @@
-import { Box, Button, Typography } from '@mui/material';
-import { addDevice } from '../features/devices/devicesSlice';
-import { useAppDispatch } from '../app/hooks';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
+import React from 'react';
 
-export function Welcome() {
-  const dispatch = useAppDispatch();
-
+export function Connecting() {
   return (
     <Box
       sx={{
@@ -17,14 +14,15 @@ export function Welcome() {
       }}
     >
       <div>
+        <CircularProgress size="5rem" sx={{ mb: 5 }} />
         <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-          Welcome
+          Connecting...
         </Typography>
         <Typography variant="body1" sx={{ mt: 3, mb: 4 }}>
-          Turn on Bluetooth and connect first device
+          Turn on Bluetooth and select RGB controller device
         </Typography>
-        <Button onClick={() => dispatch(addDevice())} variant="contained" size="large">
-          Connect
+        <Button disabled variant="contained" size="large">
+          Connecting...
         </Button>
       </div>
     </Box>

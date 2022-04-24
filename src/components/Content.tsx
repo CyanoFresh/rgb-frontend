@@ -1,34 +1,53 @@
 import { useAppDispatch, useAppSelector } from '../app/hooks';
-import { Box, Button, CircularProgress, Container } from '@mui/material';
-import { addDevice } from '../features/devices/devicesSlice';
-import React from 'react';
+import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
 import { Device } from './Device';
 import { Welcome } from './Welcome';
+import { Connecting } from './Connecting';
+import React from 'react';
+import { TopBar } from './TopBar';
+import { setMode } from '../features/devices/devicesSlice';
+import { modes } from '../features/devices/constants';
 
 export function Content() {
   const dispatch = useAppDispatch();
+
   const devices = useAppSelector((state) => state.devices.devices);
   const connecting = useAppSelector((state) => state.devices.connecting);
+  const selectedDeviceIndex = useAppSelector(
+    (state) => state.devices.selectedDeviceIndex,
+  );
+
+  const onModeChange = (event: React.SyntheticEvent, value: number) =>
+    dispatch(setMode({ name: devices[selectedDeviceIndex!].name, mode: value }));
+
+  if (devices.length === 0) {
+    if (connecting) {
+      return <Connecting />;
+    }
+
+    return <Welcome />;
+  }
 
   return (
-    <Container fixed sx={{ textAlign: 'center' }}>
-      {devices.length > 0 ? (
-        <>
-          {devices.map((device) => (
-            <Device key={device.name} device={device} />
+    <>
+      <TopBar />
+      <Device device={devices[selectedDeviceIndex!]} />
+      <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={8}>
+        <BottomNavigation
+          showLabels
+          value={parseInt('' + devices[selectedDeviceIndex!].mode) || 0}
+          onChange={onModeChange}
+        >
+          {modes.map((mode) => (
+            <BottomNavigationAction
+              key={mode.value}
+              label={mode.name}
+              value={mode.value}
+              icon={<mode.icon />}
+            />
           ))}
-
-          <Box sx={{ margin: '10px 0' }}>{connecting && <CircularProgress />}</Box>
-
-          <Box sx={{ margin: '10px 0' }}>
-            <Button onClick={() => dispatch(addDevice())} variant="contained">
-              Connect
-            </Button>
-          </Box>
-        </>
-      ) : (
-        <Welcome />
-      )}
-    </Container>
+        </BottomNavigation>
+      </Paper>
+    </>
   );
 }
