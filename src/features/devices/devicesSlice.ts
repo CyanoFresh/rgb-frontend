@@ -6,26 +6,22 @@ import {
   MODE_CHARACTERISTIC_UUID,
   MODE_SERVICE_UUID,
 } from './constants';
-
-export enum DeviceMode {
-  STATIC,
-  RAINBOW,
-  STROBE,
-}
+import { RootState } from '../../app/store';
 
 export type Color = [number, number, number];
+export type ModeValue = 0 | 1 | 3;
 
 export interface DeviceInfo {
   name: string;
-  batteryLevel?: number;
-  mode?: DeviceMode;
-  color1?: Color;
+  batteryLevel: number;
+  mode: ModeValue;
+  color1: Color;
 }
 
 export interface DevicesSlice {
   connecting: boolean;
   devices: DeviceInfo[];
-  selectedDeviceIndex: number | null;
+  selectedDeviceIndex: number;
 }
 
 interface DeviceCache {
@@ -41,10 +37,24 @@ interface DevicesCache {
 const initialState: DevicesSlice = {
   connecting: false,
   devices: [],
-  selectedDeviceIndex: null,
+  selectedDeviceIndex: 0,
 };
 
 const devicesCache: DevicesCache = {};
+
+function parseModeValue(value: DataView): ModeValue {
+  const modeValue = value.getInt8(0);
+
+  return modeValue as ModeValue;
+}
+
+function parseColorValue(value: DataView): Color {
+  return Array.from(new Uint8Array(value.buffer)) as [number, number, number];
+}
+
+function parseUint8Value(value: DataView) {
+  return value.getUint8(0);
+}
 
 export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch }) => {
   if (!navigator.bluetooth) {
@@ -85,12 +95,6 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
 
   console.log(`${device.name} connected`);
 
-  dispatch(
-    deviceConnected({
-      name: device.name!,
-    }),
-  );
-
   device.ongattserverdisconnected = () => {
     // TODO: reconnect https://googlechrome.github.io/samples/web-bluetooth/automatic-reconnect.html
 
@@ -98,7 +102,7 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
 
     delete devicesCache[device.name!];
 
-    dispatch(deviceDisconnected(device.name));
+    dispatch(deviceDisconnected(deviceInfo));
   };
 
   const [modeService, batteryService] = await Promise.all([
@@ -123,16 +127,36 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
     color1Characteristic,
   };
 
+  const [modeValue, color1Value, batteryValue] = await Promise.all([
+    modeCharacteristic.readValue(),
+    color1Characteristic.readValue(),
+    batteryCharacteristic.readValue(),
+  ]);
+
+  console.log(`values read`);
+
+  const mode = parseModeValue(modeValue);
+  const color1 = parseColorValue(color1Value);
+  const batteryLevel = parseUint8Value(batteryValue);
+
+  const deviceInfo: DeviceInfo = {
+    name: device.name!,
+    batteryLevel,
+    mode,
+    color1,
+  };
+
+  dispatch(deviceConnected(deviceInfo));
+
   modeCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
     console.log('mode characteristicvaluechanged');
-
     const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
 
-    const mode = value.getInt8(0).toString();
+    const mode = parseModeValue(value);
 
     dispatch(
       updateDevice({
-        name: device.name,
+        ...deviceInfo,
         mode,
       }),
     );
@@ -143,11 +167,11 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
 
     const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
 
-    const color1 = Array.from(new Uint8Array(value.buffer));
+    const color1 = parseColorValue(value);
 
     dispatch(
       updateDevice({
-        name: device.name,
+        ...deviceInfo,
         color1,
       }),
     );
@@ -158,11 +182,11 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
 
     const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
 
-    const batteryLevel = value.getUint8(0);
+    const batteryLevel = parseUint8Value(value);
 
     dispatch(
       updateDevice({
-        name: device.name,
+        ...deviceInfo,
         batteryLevel,
       }),
     );
@@ -175,26 +199,18 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
   ]);
 
   console.log(`notifications started`);
-
-  await Promise.all([
-    modeCharacteristic.readValue(),
-    color1Characteristic.readValue(),
-    batteryCharacteristic.readValue(),
-  ]);
-
-  console.log(`values read`);
 });
 
 export const disconnectDevice = createAsyncThunk(
   'devices/disconnect',
-  async (name: string) => {
-    if (!devicesCache[name]) {
+  async (device: DeviceInfo) => {
+    if (!devicesCache[device.name]) {
       throw new Error('Device not found');
     }
 
-    await devicesCache[name].bleDevice.gatt?.disconnect();
+    await devicesCache[device.name].bleDevice.gatt?.disconnect();
 
-    delete devicesCache[name];
+    delete devicesCache[device.name];
   },
 );
 
@@ -228,14 +244,16 @@ export const devicesSlice = createSlice({
   name: 'device',
   initialState,
   reducers: {
-    deviceConnected: (state, action: PayloadAction<DeviceInfo>) => {
+    deviceConnected(state, action: PayloadAction<DeviceInfo>) {
       state.selectedDeviceIndex = state.devices.length;
       state.devices.push(action.payload);
     },
-    deviceDisconnected(state, action) {
-      state.devices = state.devices.filter((device) => device.name !== action.payload);
+    deviceDisconnected(state, action: PayloadAction<DeviceInfo>) {
+      state.devices = state.devices.filter(
+        (device) => device.name !== action.payload.name,
+      );
     },
-    updateDevice(state, action) {
+    updateDevice(state, action: PayloadAction<DeviceInfo>) {
       const index = state.devices.findIndex(
         (device) => device.name === action.payload.name,
       );
@@ -249,11 +267,11 @@ export const devicesSlice = createSlice({
         ...action.payload,
       };
     },
-    selectDevice(state, action) {
+    selectDevice(state, action: PayloadAction<number>) {
       state.selectedDeviceIndex = action.payload;
     },
   },
-  extraReducers: (builder) => {
+  extraReducers(builder) {
     builder
       .addCase(addDevice.fulfilled, (state) => {
         state.connecting = false;
@@ -266,6 +284,9 @@ export const devicesSlice = createSlice({
       });
   },
 });
+
+export const selectCurrentDevice = (state: RootState) =>
+  state.devices.devices[state.devices.selectedDeviceIndex];
 
 export const { deviceConnected, deviceDisconnected, updateDevice, selectDevice } =
   devicesSlice.actions;

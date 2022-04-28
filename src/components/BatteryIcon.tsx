@@ -8,7 +8,7 @@ import {
   Battery6BarOutlined,
 } from '@mui/icons-material';
 
-const icons = [
+const levels = [
   Battery0BarOutlined,
   Battery1BarOutlined,
   Battery2BarOutlined,
@@ -19,9 +19,9 @@ const icons = [
 ];
 
 export function getIconByLevel(level: number) {
-  const index = Math.round(level / (100 / icons.length));
+  const index = Math.round(level / (100 / levels.length));
 
-  return icons[Math.min(Math.max(index, 0), icons.length - 1)];
+  return levels[Math.min(Math.max(index, 0), levels.length - 1)];
 }
 
 export function BatteryIcon({ level }: { level: number }) {

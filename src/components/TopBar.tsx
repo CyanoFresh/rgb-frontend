@@ -13,6 +13,7 @@ import React from 'react';
 import {
   addDevice,
   disconnectDevice,
+  selectCurrentDevice,
   selectDevice,
 } from '../features/devices/devicesSlice';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
@@ -22,28 +23,27 @@ import CloseIcon from '@mui/icons-material/Close';
 import { BatteryIcon } from './BatteryIcon';
 
 export function TopBar() {
-  const dispatch = useAppDispatch();
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const selectedDeviceIndex = useAppSelector(
-    (state) => state.devices.selectedDeviceIndex,
-  );
+  const currentDevice = useAppSelector(selectCurrentDevice);
   const devices = useAppSelector((state) => state.devices.devices);
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const dispatch = useAppDispatch();
 
   const open = Boolean(anchorEl);
+
   const openMenu = (event: React.MouseEvent<HTMLElement>) =>
     setAnchorEl(event.currentTarget);
   const handleMenuItemClick = (event: React.MouseEvent<HTMLElement>, index: number) => {
     dispatch(selectDevice(index));
-    handleClose();
+    closeMenu();
   };
-  const handleClose = () => setAnchorEl(null);
+  const closeMenu = () => setAnchorEl(null);
 
   return (
     <AppBar position="sticky" color="transparent">
       <Toolbar sx={{ justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <BatteryIcon level={56} />
-          <Typography fontWeight="bold">56%</Typography>
+          <BatteryIcon level={currentDevice.batteryLevel} />
+          <Typography fontWeight="bold">{currentDevice.batteryLevel}%</Typography>
         </Box>
 
         <Button
@@ -52,13 +52,13 @@ export function TopBar() {
           color="inherit"
           sx={{ fontWeight: 'bold' }}
         >
-          {devices[selectedDeviceIndex!].name}
+          {currentDevice.name}
         </Button>
 
         <Menu
           anchorEl={anchorEl}
           open={open}
-          onClose={handleClose}
+          onClose={closeMenu}
           PaperProps={{
             sx: {
               minWidth: 270,
@@ -72,11 +72,11 @@ export function TopBar() {
           {devices.map((device, index) => (
             <MenuItem
               key={device.name}
-              selected={index === selectedDeviceIndex}
+              selected={device === currentDevice}
               onClick={(event) => handleMenuItemClick(event, index)}
             >
               <ListItemText>{device.name}</ListItemText>
-              <IconButton onClick={() => dispatch(disconnectDevice(device.name))}>
+              <IconButton onClick={() => dispatch(disconnectDevice(device))}>
                 <CloseIcon />
               </IconButton>
             </MenuItem>
