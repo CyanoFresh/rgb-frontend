@@ -22,7 +22,8 @@ ReactDOM.render(
 );
 
 // https://bit.ly/CRA-PWA
-serviceWorkerRegistration.register();
+// TODO: register in production
+serviceWorkerRegistration.unregister();
 
 // https://bit.ly/CRA-vitals
 reportWebVitals();

@@ -3,6 +3,7 @@ import {
   addDevice,
   deviceDisconnected,
   disconnectDevice,
+  setColor1,
   setMode,
 } from '../devices/devicesSlice';
 
@@ -38,6 +39,11 @@ const notificationSlice = createSlice({
       state.type = 'error';
     });
     builder.addCase(setMode.rejected, (state, action) => {
+      state.open = true;
+      state.message = action.error.message as string;
+      state.type = 'error';
+    });
+    builder.addCase(setColor1.rejected, (state, action) => {
       state.open = true;
       state.message = action.error.message as string;
       state.type = 'error';

@@ -68,14 +68,34 @@ export function TopBar() {
             'aria-labelledby': 'lock-button',
             role: 'listbox',
           }}
+          sx={{
+            '& .MuiMenu-paper': {
+              borderRadius: 4,
+            },
+            '& .MuiMenu-list': {
+              padding: 0,
+            },
+          }}
         >
           {devices.map((device, index) => (
             <MenuItem
               key={device.name}
               selected={device === currentDevice}
               onClick={(event) => handleMenuItemClick(event, index)}
+              disableGutters
             >
-              <ListItemText>{device.name}</ListItemText>
+              {/* TODO: add battery and mode+color */}
+              <ListItemText
+                disableTypography
+                sx={{
+                  fontWeight: 'bold',
+                  textTransform: 'uppercase',
+                  fontSize: '0.875rem',
+                  pl: 2.5,
+                }}
+              >
+                {device.name}
+              </ListItemText>
               <IconButton onClick={() => dispatch(disconnectDevice(device))}>
                 <CloseIcon />
               </IconButton>

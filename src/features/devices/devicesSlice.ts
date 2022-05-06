@@ -7,15 +7,15 @@ import {
   MODE_SERVICE_UUID,
 } from './constants';
 import { RootState } from '../../app/store';
+import { RGBColor } from '../../components/color';
 
-export type Color = [number, number, number];
 export type ModeValue = 0 | 1 | 3;
 
 export interface DeviceInfo {
   name: string;
   batteryLevel: number;
   mode: ModeValue;
-  color1: Color;
+  color1: RGBColor;
 }
 
 export interface DevicesSlice {
@@ -48,7 +48,7 @@ function parseModeValue(value: DataView): ModeValue {
   return modeValue as ModeValue;
 }
 
-function parseColorValue(value: DataView): Color {
+function parseColorValue(value: DataView): RGBColor {
   return Array.from(new Uint8Array(value.buffer)) as [number, number, number];
 }
 
@@ -127,11 +127,9 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
     color1Characteristic,
   };
 
-  const [modeValue, color1Value, batteryValue] = await Promise.all([
-    modeCharacteristic.readValue(),
-    color1Characteristic.readValue(),
-    batteryCharacteristic.readValue(),
-  ]);
+  const modeValue = await modeCharacteristic.readValue();
+  const color1Value = await color1Characteristic.readValue();
+  const batteryValue = await batteryCharacteristic.readValue();
 
   console.log(`values read`);
 
@@ -156,7 +154,7 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
 
     dispatch(
       updateDevice({
-        ...deviceInfo,
+        name: deviceInfo.name,
         mode,
       }),
     );
@@ -171,7 +169,7 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
 
     dispatch(
       updateDevice({
-        ...deviceInfo,
+        name: deviceInfo.name,
         color1,
       }),
     );
@@ -186,7 +184,7 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
 
     dispatch(
       updateDevice({
-        ...deviceInfo,
+        name: deviceInfo.name,
         batteryLevel,
       }),
     );
@@ -203,9 +201,12 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
 
 export const disconnectDevice = createAsyncThunk(
   'devices/disconnect',
-  async (device: DeviceInfo) => {
+  async (device: DeviceInfo, { dispatch }) => {
+    await dispatch(deviceDisconnected(device));
+
     if (!devicesCache[device.name]) {
-      throw new Error('Device not found');
+      console.warn('Trying to disconnect device that is not connected');
+      return;
     }
 
     await devicesCache[device.name].bleDevice.gatt?.disconnect();
@@ -229,7 +230,7 @@ export const setMode = createAsyncThunk(
 
 export const setColor1 = createAsyncThunk(
   'devices/setColor1',
-  async ({ name, color }: { name: string; color: Color }) => {
+  async ({ name, color }: { name: string; color: RGBColor }) => {
     if (!devicesCache[name]) {
       throw new Error('Device not found');
     }
@@ -253,7 +254,7 @@ export const devicesSlice = createSlice({
         (device) => device.name !== action.payload.name,
       );
     },
-    updateDevice(state, action: PayloadAction<DeviceInfo>) {
+    updateDevice(state, action: PayloadAction<Partial<DeviceInfo>>) {
       const index = state.devices.findIndex(
         (device) => device.name === action.payload.name,
       );

@@ -1,84 +1,179 @@
-import { Color } from '../features/devices/devicesSlice';
-import React from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { styled } from '@mui/material/styles';
+import { Box } from '@mui/material';
+import { HSLColor, HSLToRGB, radToDeg, RGBColor, RGBToHSL } from './color';
 
-// const Root = styled('div')(({ theme }) => ({
-//   display: 'inline-block',
-//   padding: '10vw',
-//   borderRadius: '100%',
-//   background: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)',
-//   backgroundRepeat: 'no-repeat',
-//   // backgroundSize: 'cover',
-//   backgroundPosition: 'center center',
-//   backgroundSize: 'auto',
-//   '&::after': {
-//     content: '""',
-//     display: 'block',
-//     padding: '30vw',
-//     borderRadius: '100%',
-//     background: '#ffffff',
-//   },
-// }));
-
-const SvgRoot = styled('div')(({ theme }) => ({
+const ShadowWrap = styled('div')(({ theme }) => ({
+  filter: 'drop-shadow(0 4px 4px rgba(50, 50, 0, 0.5))',
+  width: '100%',
   height: '100%',
-  borderRadius: '50%',
-  background: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)',
+  touchAction: 'none',
 }));
 
-const BorderRoot = styled('div')(({ theme }) => ({
-  // height: '100vw',
-  maxWidth: 300,
-  aspectRatio: '1 / 1',
+const Wheel = styled('div', {
+  name: 'current-color',
+})(({ theme }) => ({
   borderRadius: '50%',
-  border: '30px solid transparent',
+  border: '40px solid transparent',
   background: 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red) border-box',
   WebkitMask: 'linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0)',
   WebkitMaskComposite: 'xor',
   maskComposite: 'exclude',
+  width: '100%',
+  height: '100%',
 }));
 
-export function ColorPicker({ color }: { color: Color }) {
+const CurrentColor = styled('div', {
+  name: 'current-color',
+})(({ theme }) => ({
+  width: 50,
+  height: 50,
+  borderRadius: '50%',
+  background: '#222',
+  position: 'absolute',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+}));
+
+const Root = styled('div')(({ theme }) => ({
+  position: 'relative',
+  aspectRatio: '1',
+  width: '100%',
+  userSelect: 'none',
+  cursor: 'grab',
+  [theme.breakpoints.up('sm')]: {
+    maxWidth: 300,
+  },
+}));
+
+function Handle({ rootRef }: { rootRef: React.Ref<HTMLDivElement> }) {
   return (
-    <BorderRoot />
+    <Box
+      ref={rootRef}
+      sx={{
+        position: 'absolute',
+        top: '50%',
+        // transform: `translateY(-50%) rotate(calc(${hue + 90}deg)) translateX(-50px)`, <-- controlled by inline styles
+        width: '100%',
+        height: 10,
+      }}
+    >
+      <Box
+        sx={{
+          width: 50,
+          height: 10,
+          borderRadius: 10,
+          border: '4px solid #fff',
+          borderRightWidth: 7,
+          borderLeftWidth: 7,
+          background: '#E0E0E0',
+          transform: 'translateX(45px)',
+          boxShadow: '0 0 10px rgba(0, 0, 0, 0.25)',
+        }}
+      />
+    </Box>
+  );
+}
 
-    // <svg viewBox="0 0 100 100">
-    //   <clipPath id="clip">
-    //     <path d="M 50 0 a 50 50 0 0 1 0 100 50 50 0 0 1 0 -100 v 8 a 42 42 0 0 0 0 84 42 42 0 0 0 0 -84" />
-    //   </clipPath>
-    //
-    //   <foreignObject x="0" y="0" width="100" height="100" clipPath="url(#clip)">
-    //     <SvgRoot></SvgRoot>
-    //   </foreignObject>
-    // </svg>
+interface ColorPickerProps {
+  color: RGBColor;
+  onChangeEnd: (hue: number) => void;
+}
 
-    // <svg
-    //   style={{
-    //     background: `conic-gradient(from 90deg,
-    //     red, #ff8000, yellow, #80ff00, lime, #00ff80, aqua, #0080ff, blue, #8000ff, fuchsia, #ff0080, red
-    //     )`,
-    //     width: '100%',
-    //     height: '100vw',
-    //     borderRadius: '50%',
-    //   }}
-    // >
-    //   <circle cx="50%" cy="50%" r="4" fill="transparent" />
-    // </svg>
-    // <svg
-    //   style={{
-    //     // background: `conic-gradient(from 90deg,
-    //     //   red, #ff8000, yellow, #80ff00, lime, #00ff80, aqua, #0080ff, blue, #8000ff, fuchsia, #ff0080, red
-    //     //   )`,
-    //     width: '100%',
-    //     height: '100vw',
-    //     // borderRadius: '50%',
-    //   }}
-    // >
-    //   <circle cx="50%" cy="50%" r="45%" mask="url(#rmvCir)" />
-    //   <mask id="rmvCir">
-    //     <circle cx="50%" cy="50%" r="45%" fill="white" />
-    //     <circle cx="50%" cy="50%" r="25%" fill="black" />
-    //   </mask>
-    // </svg>
+export function ColorPicker({ color, onChangeEnd }: ColorPickerProps) {
+  const wheelRef = React.useRef<HTMLDivElement>(null);
+  const handleRef = React.useRef<HTMLDivElement>(null);
+  const currentColorRef = React.useRef<HTMLDivElement>(null);
+  const cleanup = React.useRef<() => void>(null as any);
+  const hueRef = React.useRef<number>(RGBToHSL(color)[0]);
+
+  const onMove = useCallback((e: PointerEvent | React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const target = wheelRef.current!;
+
+    const rect = target.getBoundingClientRect();
+
+    const x = e.clientX - rect.x - rect.width / 2;
+    const y = e.clientY - rect.y - rect.height / 2;
+
+    const angle = radToDeg(Math.atan2(y, x));
+    const hue = (angle + 360 + 90) % 360;
+    const hsl = [hue, 100, 50] as HSLColor;
+    const rgb = HSLToRGB(hsl);
+
+    // TODO: extract method
+    if (handleRef.current && currentColorRef.current) {
+      hueRef.current = hue;
+
+      handleRef.current.style.transform = `translateY(-50%) rotate(calc(${
+        hue + 90
+      }deg)) translateX(-50px)`;
+
+      currentColorRef.current.style.backgroundColor = `rgb(${rgb.join(', ')})`;
+    }
+
+    // TODO: use debounce
+    // TODO: use throttle
+  }, []);
+
+  const onMouseUp = useCallback(() => {
+    console.log('up');
+
+    onChangeEnd(hueRef.current);
+
+    cleanup.current?.();
+  }, [onChangeEnd]);
+
+  const onMouseDown = useCallback(
+    (e: React.PointerEvent) => {
+      console.log('down');
+
+      if (cleanup.current) {
+        cleanup.current();
+      }
+
+      window.addEventListener('pointermove', onMove, { passive: false });
+      window.addEventListener('pointerup', onMouseUp, { passive: false });
+
+      cleanup.current = () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onMouseUp);
+
+        cleanup.current = null as any;
+      };
+
+      // Handle the first move
+      onMove(e);
+    },
+    [onMove, onMouseUp],
+  );
+
+  // Unsubscribe on unmount
+  useEffect(() => () => cleanup.current?.(), []);
+
+  useEffect(() => {
+    // TODO: extract method
+    if (handleRef.current && currentColorRef.current) {
+      handleRef.current.style.transform = `translateY(-50%) rotate(calc(${
+        hueRef.current! + 90
+      }deg)) translateX(-50px)`;
+
+      currentColorRef.current.style.backgroundColor = `rgb(${color.join(', ')})`;
+    }
+  }, [color]);
+
+  return (
+    <Root>
+      <ShadowWrap onPointerDown={onMouseDown}>
+        <Wheel ref={wheelRef} />
+
+        <CurrentColor ref={currentColorRef} />
+      </ShadowWrap>
+
+      <Handle rootRef={handleRef} />
+    </Root>
   );
 }
