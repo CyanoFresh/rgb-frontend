@@ -12,14 +12,33 @@ export function BottomBar() {
     dispatch(setMode({ name: currentDevice.name, mode: value }));
 
   return (
-    <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={8}>
-      <BottomNavigation showLabels value={currentDevice.mode} onChange={onModeChange}>
+    <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={4}>
+      <BottomNavigation
+        showLabels
+        value={currentDevice.mode}
+        onChange={onModeChange}
+        sx={{
+          height: 'unset',
+        }}
+      >
         {modes.map((mode) => (
           <BottomNavigationAction
             key={mode.value}
             label={mode.name}
             value={mode.value}
             icon={<mode.icon />}
+            sx={{
+              '& .MuiBottomNavigationAction-label': {
+                fontWeight: 'bold',
+                mb: 1.5,
+                textTransform: 'uppercase',
+                fontSize: '0.7rem',
+              },
+              '& .MuiSvgIcon-root': {
+                mt: 1.5,
+                mb: 0.75,
+              },
+            }}
           />
         ))}
       </BottomNavigation>

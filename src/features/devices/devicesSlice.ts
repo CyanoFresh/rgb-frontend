@@ -9,7 +9,7 @@ import {
 import { RootState } from '../../app/store';
 import { RGBColor } from '../../components/color';
 
-export type ModeValue = 0 | 1 | 3;
+export type ModeValue = 0 | 1 | 2;
 
 interface DeviceInfoMinimal {
   name: string;
@@ -59,146 +59,156 @@ function parseUint8Value(value: DataView) {
   return value.getUint8(0);
 }
 
-export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch }) => {
-  if (!navigator.bluetooth) {
-    throw new Error('Bluetooth is not supported on your device');
-  }
-
-  let device: BluetoothDevice;
-
-  try {
-    device = await navigator.bluetooth.requestDevice({
-      filters: [
-        {
-          services: [MODE_SERVICE_UUID],
-        },
-      ],
-      optionalServices: ['battery_service'],
-    });
-  } catch (e) {
-    // Prettify the error message
-    if (e instanceof DOMException && e.name === 'NotFoundError') {
-      throw new Error(e.message);
+export const addDevice = createAsyncThunk(
+  'devices/add',
+  async (arg, { dispatch, getState }) => {
+    if (!navigator.bluetooth) {
+      throw new Error('Bluetooth is not supported on your device');
     }
 
-    throw e;
-  }
+    let device: BluetoothDevice;
 
-  if (!device.gatt) {
-    throw new Error('Bluetooth device is not supported');
-  }
+    try {
+      device = await navigator.bluetooth.requestDevice({
+        filters: [
+          {
+            services: [MODE_SERVICE_UUID],
+          },
+        ],
+        optionalServices: ['battery_service'],
+      });
+    } catch (e) {
+      // Prettify the error message
+      if (e instanceof DOMException && e.name === 'NotFoundError') {
+        throw new Error(e.message);
+      }
 
-  if (device.gatt.connected) {
-    throw new Error('Device is already connected');
-  }
+      throw e;
+    }
 
-  console.log(`${device.name} connecting...`);
+    if (!device.gatt) {
+      throw new Error('Bluetooth device is not supported');
+    }
 
-  await device.gatt.connect();
+    if (device.gatt.connected) {
+      throw new Error('Device is already connected');
+    }
 
-  console.log(`${device.name} connected`);
+    console.log(`${device.name} connecting...`);
 
-  device.ongattserverdisconnected = () => {
-    // TODO: reconnect https://googlechrome.github.io/samples/web-bluetooth/automatic-reconnect.html
+    await device.gatt.connect();
 
-    console.log(`${deviceInfo.name} disconnected`);
+    console.log(`${device.name} connected`);
 
-    delete devicesCache[deviceInfo.name];
+    device.ongattserverdisconnected = () => {
+      // TODO: reconnect https://googlechrome.github.io/samples/web-bluetooth/automatic-reconnect.html
 
-    dispatch(deviceDisconnected(deviceInfo));
-  };
+      console.log(`${deviceInfo.name} disconnected`);
 
-  const [modeService, batteryService] = await Promise.all([
-    device.gatt.getPrimaryService(MODE_SERVICE_UUID),
-    device.gatt.getPrimaryService(BATTERY_SERVICE_UUID),
-  ]);
+      delete devicesCache[deviceInfo.name];
 
-  console.log(`services fetched`);
+      dispatch(deviceDisconnected(deviceInfo));
+    };
 
-  const [modeCharacteristic, color1Characteristic, batteryCharacteristic] =
-    await Promise.all([
-      modeService.getCharacteristic(MODE_CHARACTERISTIC_UUID),
-      modeService.getCharacteristic(COLOR1_CHARACTERISTIC_UUID),
-      batteryService.getCharacteristic(BATTERY_CHARACTERISTIC_UUID),
+    window.onbeforeunload = (e) => {
+      if ((getState() as RootState).devices.devices.length > 0) {
+        e.preventDefault();
+        e.returnValue = 'Devices will be disconnected';
+      }
+    };
+
+    const [modeService, batteryService] = await Promise.all([
+      device.gatt.getPrimaryService(MODE_SERVICE_UUID),
+      device.gatt.getPrimaryService(BATTERY_SERVICE_UUID),
     ]);
 
-  console.log(`characteristics fetched`);
+    console.log(`services fetched`);
 
-  devicesCache[device.name!] = {
-    bleDevice: device,
-    modeCharacteristic,
-    color1Characteristic,
-  };
+    const [modeCharacteristic, color1Characteristic, batteryCharacteristic] =
+      await Promise.all([
+        modeService.getCharacteristic(MODE_CHARACTERISTIC_UUID),
+        modeService.getCharacteristic(COLOR1_CHARACTERISTIC_UUID),
+        batteryService.getCharacteristic(BATTERY_CHARACTERISTIC_UUID),
+      ]);
 
-  const modeValue = await modeCharacteristic.readValue();
-  const color1Value = await color1Characteristic.readValue();
-  const batteryValue = await batteryCharacteristic.readValue();
+    console.log(`characteristics fetched`);
 
-  console.log(`values read`);
+    devicesCache[device.name!] = {
+      bleDevice: device,
+      modeCharacteristic,
+      color1Characteristic,
+    };
 
-  const mode = parseModeValue(modeValue);
-  const color1 = parseColorValue(color1Value);
-  const batteryLevel = parseUint8Value(batteryValue);
+    const modeValue = await modeCharacteristic.readValue();
+    const color1Value = await color1Characteristic.readValue();
+    const batteryValue = await batteryCharacteristic.readValue();
 
-  const deviceInfo: DeviceInfo = {
-    name: device.name!,
-    batteryLevel,
-    mode,
-    color1,
-  };
+    console.log(`values read`);
 
-  dispatch(deviceConnected(deviceInfo));
+    const mode = parseModeValue(modeValue);
+    const color1 = parseColorValue(color1Value);
+    const batteryLevel = parseUint8Value(batteryValue);
 
-  modeCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
-    console.log('mode characteristicvaluechanged');
-    const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+    const deviceInfo: DeviceInfo = {
+      name: device.name!,
+      batteryLevel,
+      mode,
+      color1,
+    };
 
-    const mode = parseModeValue(value);
+    dispatch(deviceConnected(deviceInfo));
 
-    dispatch(
-      updateDevice({
-        name: deviceInfo.name,
-        mode,
-      }),
-    );
-  });
+    modeCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
+      console.log('mode characteristicvaluechanged');
+      const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
 
-  color1Characteristic.addEventListener('characteristicvaluechanged', (e) => {
-    console.log('color1 characteristicvaluechanged');
+      const mode = parseModeValue(value);
 
-    const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+      dispatch(
+        updateDevice({
+          name: deviceInfo.name,
+          mode,
+        }),
+      );
+    });
 
-    const color1 = parseColorValue(value);
+    color1Characteristic.addEventListener('characteristicvaluechanged', (e) => {
+      console.log('color1 characteristicvaluechanged');
 
-    dispatch(
-      updateDevice({
-        name: deviceInfo.name,
-        color1,
-      }),
-    );
-  });
+      const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
 
-  batteryCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
-    console.log('battery characteristicvaluechanged');
+      const color1 = parseColorValue(value);
 
-    const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+      dispatch(
+        updateDevice({
+          name: deviceInfo.name,
+          color1,
+        }),
+      );
+    });
 
-    const batteryLevel = parseUint8Value(value);
+    batteryCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
+      console.log('battery characteristicvaluechanged');
 
-    dispatch(
-      updateDevice({
-        name: deviceInfo.name,
-        batteryLevel,
-      }),
-    );
-  });
+      const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
 
-  await modeCharacteristic.startNotifications();
-  await color1Characteristic.startNotifications();
-  await batteryCharacteristic.startNotifications();
+      const batteryLevel = parseUint8Value(value);
 
-  console.log(`notifications started`);
-});
+      dispatch(
+        updateDevice({
+          name: deviceInfo.name,
+          batteryLevel,
+        }),
+      );
+    });
+
+    await modeCharacteristic.startNotifications();
+    await color1Characteristic.startNotifications();
+    await batteryCharacteristic.startNotifications();
+
+    console.log(`notifications started`);
+  },
+);
 
 export const disconnectDevice = createAsyncThunk(
   'devices/disconnect',
