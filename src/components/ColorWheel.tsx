@@ -70,7 +70,6 @@ function Handle({ rootRef }: { rootRef: React.Ref<HTMLDivElement> }) {
           borderRightWidth: 7,
           borderLeftWidth: 7,
           background: '#E0E0E0',
-          // transform: 'translateX(45px)',
           boxShadow: '0 0 10px rgba(0, 0, 0, 0.25)',
         }}
       />
@@ -83,20 +82,22 @@ interface ColorPickerProps {
   onChangeEnd: (hue: number) => void;
 }
 
-export function ColorPicker({ color, onChangeEnd }: ColorPickerProps) {
+export function ColorWheel({ color, onChangeEnd }: ColorPickerProps) {
   const wheelRef = React.useRef<HTMLDivElement>(null);
   const handleRef = React.useRef<HTMLDivElement>(null);
-  const currentColorRef = React.useRef<HTMLDivElement>(null);
+  const currentColorCircleRef = React.useRef<HTMLDivElement>(null);
   const cleanup = React.useRef<() => void>(null as any);
   const hueRef = React.useRef<number>(RGBToHSL(color)[0]);
 
   const reactToHueChange = useCallback((hue: number) => {
-    if (handleRef.current && currentColorRef.current) {
+    if (handleRef.current && currentColorCircleRef.current) {
       hueRef.current = hue;
 
       handleRef.current.style.transform = `translateY(-50%) rotate(calc(${hue + 90}deg))`;
 
-      currentColorRef.current.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
+      currentColorCircleRef.current.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
+
+      console.log({ hue });
     }
   }, []);
 
@@ -121,8 +122,6 @@ export function ColorPicker({ color, onChangeEnd }: ColorPickerProps) {
   );
 
   const onMouseUp = useCallback(() => {
-    console.log('up');
-
     onChangeEnd(hueRef.current);
 
     cleanup.current?.();
@@ -130,8 +129,6 @@ export function ColorPicker({ color, onChangeEnd }: ColorPickerProps) {
 
   const onMouseDown = useCallback(
     (e: React.PointerEvent) => {
-      console.log('down', e);
-
       if (cleanup.current) {
         cleanup.current();
       }
@@ -166,7 +163,7 @@ export function ColorPicker({ color, onChangeEnd }: ColorPickerProps) {
       <ShadowWrap>
         <Wheel ref={wheelRef} />
 
-        <CurrentColor ref={currentColorRef} />
+        <CurrentColor ref={currentColorCircleRef} />
       </ShadowWrap>
 
       <Handle rootRef={handleRef} />

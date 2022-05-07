@@ -39,7 +39,6 @@ function DeviceMenuItem({ device, index, closeMenu }: DeviceMenuItemProps) {
         padding: 0,
       }}
     >
-      {/* TODO: add battery */}
       <Box
         sx={{
           padding: 1,
@@ -70,7 +69,7 @@ function DeviceMenuItem({ device, index, closeMenu }: DeviceMenuItemProps) {
       >
         {device.batteryLevel}%
       </Box>
-      <IconButton onClick={handleDisconnectClick(device)} sx={{ pr: 2 }}>
+      <IconButton onClick={handleDisconnectClick(device)} sx={{ pr: 1.5 }}>
         <CloseIcon />
       </IconButton>
     </MenuItem>
@@ -121,9 +120,11 @@ export function SelectDeviceMenu() {
             padding: 0,
           },
           '& .MuiMenu-list .Mui-selected': {
-            // padding: 20,
             backgroundColor: 'primary.main',
             color: 'primary.contrastText',
+          },
+          '& .MuiMenu-list .Mui-selected:hover': {
+            backgroundColor: 'primary.dark',
           },
           '& .MuiMenu-list .MuiIconButton-root': {
             color: 'inherit',

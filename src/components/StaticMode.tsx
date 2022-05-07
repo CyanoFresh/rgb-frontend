@@ -1,20 +1,38 @@
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { selectCurrentDevice, setColor1 } from '../features/devices/devicesSlice';
 import React, { useCallback } from 'react';
-import { HSLToRGB } from './color';
+import { HSLColor, HSLToRGB, RGBToHSL } from './color';
 import { Box } from '@mui/material';
-import { ColorPicker } from './ColorPicker';
+import { ColorWheel } from './ColorWheel';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
+import { ColorSlider } from './ColorSlider';
 
 export function StaticMode() {
   const device = useAppSelector(selectCurrentDevice);
   const dispatch = useAppDispatch();
 
-  const onChangeEnd = useCallback(
+  const onHueChange = useCallback(
     (hue: number) => {
-      const rgb = HSLToRGB([hue, 100, 50]);
+      const hsl = RGBToHSL(device.color1);
+      const newHsl = [hue, 100, hsl[2]] as HSLColor;
+      const rgb = HSLToRGB(newHsl);
+
+      console.log({ hsl, newHsl, rgb }, device.color1);
+
       dispatch(setColor1({ name: device.name, color: rgb }));
     },
-    [device.name, dispatch],
+    [device.color1, device.name, dispatch],
+  );
+
+  const onLightnessChange = useCallback(
+    (lightness: number) => {
+      const hsl = RGBToHSL(device.color1);
+      const rgb = HSLToRGB([hsl[0], 100, lightness]);
+
+      dispatch(setColor1({ name: device.name, color: rgb }));
+    },
+    [device.color1, device.name, dispatch],
   );
 
   return (
@@ -27,7 +45,25 @@ export function StaticMode() {
         overflow: 'hidden',
       }}
     >
-      <ColorPicker color={device.color1} onChangeEnd={onChangeEnd} />
+      <ColorWheel color={device.color1} onChangeEnd={onHueChange} />
+
+      <Box
+        sx={{
+          my: 5,
+          width: '100%',
+          maxWidth: 400,
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        <LightModeIcon />
+
+        <Box sx={{ mx: 1, flexGrow: 1 }}>
+          <ColorSlider color={device.color1} onChangeEnd={onLightnessChange} />
+        </Box>
+
+        <LightModeOutlinedIcon />
+      </Box>
     </Box>
   );
 }

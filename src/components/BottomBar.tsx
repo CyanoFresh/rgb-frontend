@@ -34,6 +34,9 @@ export function BottomBar() {
                 textTransform: 'uppercase',
                 fontSize: '0.7rem',
               },
+              '& .MuiBottomNavigationAction-label.Mui-active': {
+                fontSize: '0.7rem',
+              },
               '& .MuiSvgIcon-root': {
                 mt: 1.5,
                 mb: 0.75,
