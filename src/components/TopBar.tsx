@@ -2,6 +2,7 @@ import {
   AppBar,
   Box,
   Button,
+  CircularProgress,
   IconButton,
   ListItemText,
   Menu,
@@ -12,6 +13,7 @@ import {
 import React from 'react';
 import {
   addDevice,
+  DeviceInfo,
   disconnectDevice,
   selectCurrentDevice,
   selectDevice,
@@ -24,6 +26,7 @@ import { BatteryIcon } from './BatteryIcon';
 
 export function TopBar() {
   const currentDevice = useAppSelector(selectCurrentDevice);
+  const connecting = useAppSelector((state) => state.devices.connecting);
   const devices = useAppSelector((state) => state.devices.devices);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const dispatch = useAppDispatch();
@@ -37,6 +40,13 @@ export function TopBar() {
     closeMenu();
   };
   const closeMenu = () => setAnchorEl(null);
+
+  const handleDisconnectClick =
+    (device: DeviceInfo) => (e: React.MouseEvent<HTMLElement>) => {
+      e.stopPropagation();
+      dispatch(disconnectDevice(device));
+    };
+  const handleAddDeviceClick = () => dispatch(addDevice());
 
   return (
     <AppBar position="sticky" color="transparent">
@@ -96,16 +106,22 @@ export function TopBar() {
               >
                 {device.name}
               </ListItemText>
-              <IconButton onClick={() => dispatch(disconnectDevice(device))}>
+              <IconButton onClick={handleDisconnectClick(device)}>
                 <CloseIcon />
               </IconButton>
             </MenuItem>
           ))}
         </Menu>
 
-        <IconButton color="inherit" onClick={() => dispatch(addDevice())}>
-          <AddIcon />
-        </IconButton>
+        {connecting ? (
+          <Box sx={{ p: 1, display: 'flex', alignContent: 'center' }}>
+            <CircularProgress size={24} />
+          </Box>
+        ) : (
+          <IconButton color="inherit" onClick={handleAddDeviceClick}>
+            <AddIcon />
+          </IconButton>
+        )}
       </Toolbar>
     </AppBar>
   );

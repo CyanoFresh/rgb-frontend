@@ -11,8 +11,11 @@ import { RGBColor } from '../../components/color';
 
 export type ModeValue = 0 | 1 | 3;
 
-export interface DeviceInfo {
+interface DeviceInfoMinimal {
   name: string;
+}
+
+export interface DeviceInfo extends DeviceInfoMinimal {
   batteryLevel: number;
   mode: ModeValue;
   color1: RGBColor;
@@ -98,9 +101,9 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
   device.ongattserverdisconnected = () => {
     // TODO: reconnect https://googlechrome.github.io/samples/web-bluetooth/automatic-reconnect.html
 
-    console.log(`${device.name} disconnected`);
+    console.log(`${deviceInfo.name} disconnected`);
 
-    delete devicesCache[device.name!];
+    delete devicesCache[deviceInfo.name];
 
     dispatch(deviceDisconnected(deviceInfo));
   };
@@ -190,25 +193,23 @@ export const addDevice = createAsyncThunk('devices/add', async (arg, { dispatch 
     );
   });
 
-  await Promise.all([
-    modeCharacteristic.startNotifications(),
-    color1Characteristic.startNotifications(),
-    batteryCharacteristic.startNotifications(),
-  ]);
+  await modeCharacteristic.startNotifications();
+  await color1Characteristic.startNotifications();
+  await batteryCharacteristic.startNotifications();
 
   console.log(`notifications started`);
 });
 
 export const disconnectDevice = createAsyncThunk(
   'devices/disconnect',
-  async (device: DeviceInfo, { dispatch }) => {
-    await dispatch(deviceDisconnected(device));
-
+  async (device: Partial<DeviceInfo> & { name: string }, { dispatch }) => {
     if (!devicesCache[device.name]) {
       console.warn('Trying to disconnect device that is not connected');
+      await dispatch(deviceDisconnected(device));
       return;
     }
 
+    // `ongattserverdisconnected` event will be fired
     await devicesCache[device.name].bleDevice.gatt?.disconnect();
 
     delete devicesCache[device.name];
@@ -249,12 +250,13 @@ export const devicesSlice = createSlice({
       state.selectedDeviceIndex = state.devices.length;
       state.devices.push(action.payload);
     },
-    deviceDisconnected(state, action: PayloadAction<DeviceInfo>) {
+    deviceDisconnected(state, action: PayloadAction<DeviceInfoMinimal>) {
+      state.selectedDeviceIndex = Math.max(0, state.selectedDeviceIndex - 1);
       state.devices = state.devices.filter(
         (device) => device.name !== action.payload.name,
       );
     },
-    updateDevice(state, action: PayloadAction<Partial<DeviceInfo>>) {
+    updateDevice(state, action: PayloadAction<DeviceInfoMinimal & Partial<DeviceInfo>>) {
       const index = state.devices.findIndex(
         (device) => device.name === action.payload.name,
       );
@@ -269,6 +271,10 @@ export const devicesSlice = createSlice({
       };
     },
     selectDevice(state, action: PayloadAction<number>) {
+      if (action.payload < 0 || action.payload >= state.devices.length) {
+        return state;
+      }
+
       state.selectedDeviceIndex = action.payload;
     },
   },

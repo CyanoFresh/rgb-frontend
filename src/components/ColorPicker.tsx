@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect } from 'react';
 import { styled } from '@mui/material/styles';
 import { Box } from '@mui/material';
-import { HSLColor, HSLToRGB, radToDeg, RGBColor, RGBToHSL } from './color';
+import { radToDeg, RGBColor, RGBToHSL } from './color';
 
 const ShadowWrap = styled('div')(({ theme }) => ({
   filter: 'drop-shadow(0 4px 4px rgba(50, 50, 0, 0.5))',
   width: '100%',
   height: '100%',
-  touchAction: 'none',
 }));
 
 const Wheel = styled('div', {
@@ -40,11 +39,13 @@ const Root = styled('div')(({ theme }) => ({
   position: 'relative',
   aspectRatio: '1',
   width: '100%',
-  userSelect: 'none',
-  cursor: 'grab',
   [theme.breakpoints.up('sm')]: {
     maxWidth: 300,
   },
+  // usability fixes:
+  userSelect: 'none',
+  touchAction: 'none',
+  cursor: 'grab',
 }));
 
 function Handle({ rootRef }: { rootRef: React.Ref<HTMLDivElement> }) {
@@ -54,13 +55,14 @@ function Handle({ rootRef }: { rootRef: React.Ref<HTMLDivElement> }) {
       sx={{
         position: 'absolute',
         top: '50%',
-        // transform: `translateY(-50%) rotate(calc(${hue + 90}deg)) translateX(-50px)`, <-- controlled by inline styles
         width: '100%',
         height: 10,
       }}
     >
       <Box
         sx={{
+          position: 'absolute',
+          left: -5,
           width: 50,
           height: 10,
           borderRadius: 10,
@@ -68,7 +70,7 @@ function Handle({ rootRef }: { rootRef: React.Ref<HTMLDivElement> }) {
           borderRightWidth: 7,
           borderLeftWidth: 7,
           background: '#E0E0E0',
-          transform: 'translateX(45px)',
+          // transform: 'translateX(45px)',
           boxShadow: '0 0 10px rgba(0, 0, 0, 0.25)',
         }}
       />
@@ -88,36 +90,35 @@ export function ColorPicker({ color, onChangeEnd }: ColorPickerProps) {
   const cleanup = React.useRef<() => void>(null as any);
   const hueRef = React.useRef<number>(RGBToHSL(color)[0]);
 
-  const onMove = useCallback((e: PointerEvent | React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const target = wheelRef.current!;
-
-    const rect = target.getBoundingClientRect();
-
-    const x = e.clientX - rect.x - rect.width / 2;
-    const y = e.clientY - rect.y - rect.height / 2;
-
-    const angle = radToDeg(Math.atan2(y, x));
-    const hue = (angle + 360 + 90) % 360;
-    const hsl = [hue, 100, 50] as HSLColor;
-    const rgb = HSLToRGB(hsl);
-
-    // TODO: extract method
+  const reactToHueChange = useCallback((hue: number) => {
     if (handleRef.current && currentColorRef.current) {
       hueRef.current = hue;
 
-      handleRef.current.style.transform = `translateY(-50%) rotate(calc(${
-        hue + 90
-      }deg)) translateX(-50px)`;
+      handleRef.current.style.transform = `translateY(-50%) rotate(calc(${hue + 90}deg))`;
 
-      currentColorRef.current.style.backgroundColor = `rgb(${rgb.join(', ')})`;
+      currentColorRef.current.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
     }
-
-    // TODO: use debounce
-    // TODO: use throttle
   }, []);
+
+  const onMove = useCallback(
+    (e: PointerEvent | React.PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const target = wheelRef.current!;
+
+      const rect = target.getBoundingClientRect();
+
+      const x = e.clientX - rect.x - rect.width / 2;
+      const y = e.clientY - rect.y - rect.height / 2;
+
+      const angle = radToDeg(Math.atan2(y, x));
+      const hue = (angle + 360 + 90) % 360;
+
+      reactToHueChange(hue);
+    },
+    [reactToHueChange],
+  );
 
   const onMouseUp = useCallback(() => {
     console.log('up');
@@ -129,7 +130,7 @@ export function ColorPicker({ color, onChangeEnd }: ColorPickerProps) {
 
   const onMouseDown = useCallback(
     (e: React.PointerEvent) => {
-      console.log('down');
+      console.log('down', e);
 
       if (cleanup.current) {
         cleanup.current();
@@ -145,7 +146,7 @@ export function ColorPicker({ color, onChangeEnd }: ColorPickerProps) {
         cleanup.current = null as any;
       };
 
-      // Handle the first move
+      // Handle click as a first move
       onMove(e);
     },
     [onMove, onMouseUp],
@@ -155,19 +156,14 @@ export function ColorPicker({ color, onChangeEnd }: ColorPickerProps) {
   useEffect(() => () => cleanup.current?.(), []);
 
   useEffect(() => {
-    // TODO: extract method
-    if (handleRef.current && currentColorRef.current) {
-      handleRef.current.style.transform = `translateY(-50%) rotate(calc(${
-        hueRef.current! + 90
-      }deg)) translateX(-50px)`;
+    const hsl = RGBToHSL(color);
 
-      currentColorRef.current.style.backgroundColor = `rgb(${color.join(', ')})`;
-    }
-  }, [color]);
+    reactToHueChange(hsl[0]);
+  }, [color, reactToHueChange]);
 
   return (
-    <Root>
-      <ShadowWrap onPointerDown={onMouseDown}>
+    <Root onPointerDown={onMouseDown}>
+      <ShadowWrap>
         <Wheel ref={wheelRef} />
 
         <CurrentColor ref={currentColorRef} />

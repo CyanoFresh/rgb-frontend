@@ -1,8 +1,17 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { rootReducer } from '../features';
+// import logger from 'redux-logger';
 
 export function configureAppStore() {
-  const store = configureStore({
+  let middlewareConfig = {};
+
+  if (process.env.NODE_ENV === 'development') {
+    middlewareConfig = {
+      // middleware: (getDefaultMiddleware: any) => getDefaultMiddleware().concat(logger),
+    };
+  }
+
+  return configureStore({
     reducer: rootReducer,
     preloadedState: {
       devices: {
@@ -24,24 +33,6 @@ export function configureAppStore() {
         selectedDeviceIndex: 0,
       },
     },
+    ...middlewareConfig,
   });
-
-  // hmr for redux toolkit
-  // if (process.env.NODE_ENV === 'development' && module.hot) {
-  //   module.hot.accept('../features', () => {
-  //     console.log('callback');
-  //     const newRootReducer = require('../features').rootReducer;
-  //     console.log(rootReducer);
-  //     store.replaceReducer(newRootReducer);
-  //   });
-  // }
-  // if (process.env.NODE_ENV !== 'production' && module.hot) {
-  //   module.hot.accept('../features', () => {
-  //     console.log('callback');
-  //     // @ts-ignore
-  //     store.replaceReducer(rootReducer);
-  //   });
-  // }
-
-  return store;
 }
