@@ -5,9 +5,9 @@ import {
   COLOR1_CHARACTERISTIC_UUID,
   MODE_CHARACTERISTIC_UUID,
   MODE_SERVICE_UUID,
-} from './constants';
+} from '../../utils/constants';
 import { RootState } from '../../app/store';
-import { RGBColor } from '../../components/color';
+import { HSLColor, HSLToRGB10bit, RGB10bitToHSL, RGBColor } from '../../utils/color';
 
 export type ModeValue = 0 | 1 | 2;
 
@@ -18,7 +18,7 @@ interface DeviceInfoMinimal {
 export interface DeviceInfo extends DeviceInfoMinimal {
   batteryLevel: number;
   mode: ModeValue;
-  color1: RGBColor;
+  color1: HSLColor;
 }
 
 export interface DevicesSlice {
@@ -51,8 +51,10 @@ function parseModeValue(value: DataView): ModeValue {
   return modeValue as ModeValue;
 }
 
-function parseColorValue(value: DataView): RGBColor {
-  return Array.from(new Uint8Array(value.buffer)) as [number, number, number];
+function parseColorValue(value: DataView): HSLColor {
+  const rgb = Array.from(new Uint16Array(value.buffer)) as RGBColor;
+
+  return RGB10bitToHSL(rgb);
 }
 
 function parseUint8Value(value: DataView) {
@@ -145,9 +147,17 @@ export const addDevice = createAsyncThunk(
 
     console.log(`values read`);
 
-    const mode = parseModeValue(modeValue);
-    const color1 = parseColorValue(color1Value);
-    const batteryLevel = parseUint8Value(batteryValue);
+    let mode, color1, batteryLevel;
+
+    try {
+      mode = parseModeValue(modeValue);
+      color1 = parseColorValue(color1Value);
+      batteryLevel = parseUint8Value(batteryValue);
+    } catch (e) {
+      console.log(e);
+      debugger;
+      throw e;
+    }
 
     const deviceInfo: DeviceInfo = {
       name: device.name!,
@@ -246,9 +256,12 @@ export const setColor1 = createAsyncThunk(
       throw new Error('Device not found');
     }
 
-    await devicesCache[name].color1Characteristic.writeValueWithoutResponse(
-      Uint8Array.of(...color),
-    );
+    const rgb = HSLToRGB10bit(color);
+    const data = Uint16Array.of(...rgb);
+
+    console.log(data);
+
+    await devicesCache[name].color1Characteristic.writeValueWithoutResponse(data);
   },
 );
 
@@ -293,8 +306,9 @@ export const devicesSlice = createSlice({
       .addCase(addDevice.fulfilled, (state) => {
         state.connecting = false;
       })
-      .addCase(addDevice.rejected, (state) => {
+      .addCase(addDevice.rejected, (state, action) => {
         state.connecting = false;
+        debugger;
       })
       .addCase(addDevice.pending, (state) => {
         state.connecting = true;

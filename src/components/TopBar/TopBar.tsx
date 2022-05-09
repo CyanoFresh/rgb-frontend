@@ -7,8 +7,8 @@ import {
   Typography,
 } from '@mui/material';
 import React from 'react';
-import { addDevice, selectCurrentDevice } from '../features/devices/devicesSlice';
-import { useAppDispatch, useAppSelector } from '../app/hooks';
+import { addDevice, selectCurrentDevice } from '../../features/devices/devicesSlice';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import AddIcon from '@mui/icons-material/Add';
 import { BatteryIcon } from './BatteryIcon';
 import { SelectDeviceMenu } from './SelectDeviceMenu';

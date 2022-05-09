@@ -2,7 +2,7 @@ import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { selectCurrentDevice, setMode } from '../features/devices/devicesSlice';
 import React from 'react';
 import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
-import { modes } from '../features/devices/constants';
+import { modes } from '../utils/constants';
 
 export function BottomBar() {
   const currentDevice = useAppSelector(selectCurrentDevice);
@@ -34,7 +34,7 @@ export function BottomBar() {
                 textTransform: 'uppercase',
                 fontSize: '0.7rem',
               },
-              '& .MuiBottomNavigationAction-label.Mui-active': {
+              '& .MuiBottomNavigationAction-label.Mui-selected': {
                 fontSize: '0.7rem',
               },
               '& .MuiSvgIcon-root': {

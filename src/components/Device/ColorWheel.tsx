@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect } from 'react';
 import { styled } from '@mui/material/styles';
 import { Box } from '@mui/material';
-import { radToDeg, RGBColor, RGBToHSL } from './color';
+import { HSLColor, radToDeg } from '../../utils/color';
 
 const ShadowWrap = styled('div')(({ theme }) => ({
   filter: 'drop-shadow(0 4px 4px rgba(50, 50, 0, 0.5))',
@@ -78,7 +78,7 @@ function Handle({ rootRef }: { rootRef: React.Ref<HTMLDivElement> }) {
 }
 
 interface ColorPickerProps {
-  color: RGBColor;
+  color: HSLColor;
   onChangeEnd: (hue: number) => void;
 }
 
@@ -87,7 +87,7 @@ export function ColorWheel({ color, onChangeEnd }: ColorPickerProps) {
   const handleRef = React.useRef<HTMLDivElement>(null);
   const currentColorCircleRef = React.useRef<HTMLDivElement>(null);
   const cleanup = React.useRef<() => void>(null as any);
-  const hueRef = React.useRef<number>(RGBToHSL(color)[0]);
+  const hueRef = React.useRef<number>(color[0]);
 
   const reactToHueChange = useCallback((hue: number) => {
     if (handleRef.current && currentColorCircleRef.current) {
@@ -96,8 +96,6 @@ export function ColorWheel({ color, onChangeEnd }: ColorPickerProps) {
       handleRef.current.style.transform = `translateY(-50%) rotate(calc(${hue + 90}deg))`;
 
       currentColorCircleRef.current.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
-
-      console.log({ hue });
     }
   }, []);
 
@@ -153,9 +151,7 @@ export function ColorWheel({ color, onChangeEnd }: ColorPickerProps) {
   useEffect(() => () => cleanup.current?.(), []);
 
   useEffect(() => {
-    const hsl = RGBToHSL(color);
-
-    reactToHueChange(hsl[0]);
+    reactToHueChange(color[0]);
   }, [color, reactToHueChange]);
 
   return (

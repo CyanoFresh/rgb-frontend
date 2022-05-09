@@ -1,15 +1,14 @@
-import { HSLToRGB, radToDeg, RGBColor, RGBToHSL } from './color';
+import { HSLColor } from '../../utils/color';
 import { Box } from '@mui/material';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect } from 'react';
 
 interface ColorSliderProps {
-  color: RGBColor;
+  color: HSLColor;
   onChangeEnd: (lightness: number) => void;
 }
 
 export function ColorSlider({ onChangeEnd, color }: ColorSliderProps) {
-  const hsl = RGBToHSL(color);
-  const lightness = React.useRef<number>(hsl[2]);
+  const lightness = React.useRef<number>(color[2]);
   const sliderRef = React.useRef<HTMLDivElement>(null);
   const handleRef = React.useRef<HTMLDivElement>(null);
   const cleanup = React.useRef<() => void>(null as any);
@@ -75,9 +74,7 @@ export function ColorSlider({ onChangeEnd, color }: ColorSliderProps) {
   useEffect(() => () => cleanup.current?.(), []);
 
   useEffect(() => {
-    const hsl = RGBToHSL(color);
-
-    reactToLightnessChange(hsl[2]);
+    reactToLightnessChange(color[2]);
   }, [color, reactToLightnessChange]);
 
   return (
@@ -95,7 +92,7 @@ export function ColorSlider({ onChangeEnd, color }: ColorSliderProps) {
     >
       <Box
         sx={{
-          background: `linear-gradient(90deg, #000000 0%, hsl(${hsl[0]}, 100%, 50%) 100%);`,
+          background: `linear-gradient(90deg, #000000 0%, hsl(${color[0]}, 100%, 50%) 100%);`,
           padding: 1,
           borderRadius: 2,
           boxShadow: 4,

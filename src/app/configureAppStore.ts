@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { rootReducer } from '../features';
+
 // import logger from 'redux-logger';
 
 export function configureAppStore() {
@@ -20,13 +21,13 @@ export function configureAppStore() {
           {
             name: 'Device 1',
             batteryLevel: 56,
-            color1: [0, 255, 0],
+            color1: [0, 100, 50],
             mode: 0,
           },
           {
             name: 'Device 2',
             batteryLevel: 77,
-            color1: [255, 255, 0],
+            color1: [135, 100, 50],
             mode: 0,
           },
         ],

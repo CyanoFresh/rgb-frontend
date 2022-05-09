@@ -1,5 +1,5 @@
-import { useAppSelector } from '../app/hooks';
-import { selectCurrentDevice } from '../features/devices/devicesSlice';
+import { useAppSelector } from '../../app/hooks';
+import { selectCurrentDevice } from '../../features/devices/devicesSlice';
 import React from 'react';
 import { StaticMode } from './StaticMode';
 import { RainbowMode } from './RainbowMode';

@@ -1,12 +1,12 @@
-import { useAppDispatch, useAppSelector } from '../app/hooks';
-import { selectCurrentDevice, setColor1 } from '../features/devices/devicesSlice';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { selectCurrentDevice, setColor1 } from '../../features/devices/devicesSlice';
 import React, { useCallback } from 'react';
-import { HSLColor, HSLToRGB, RGBToHSL } from './color';
 import { Box } from '@mui/material';
 import { ColorWheel } from './ColorWheel';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
 import { ColorSlider } from './ColorSlider';
+import { HSLColor } from '../../utils/color';
 
 export function StaticMode() {
   const device = useAppSelector(selectCurrentDevice);
@@ -14,23 +14,20 @@ export function StaticMode() {
 
   const onHueChange = useCallback(
     (hue: number) => {
-      const hsl = RGBToHSL(device.color1);
-      const newHsl = [hue, 100, hsl[2]] as HSLColor;
-      const rgb = HSLToRGB(newHsl);
+      const hsl = device.color1;
+      const color = [hue, 100, hsl[2]] as HSLColor;
 
-      console.log({ hsl, newHsl, rgb }, device.color1);
-
-      dispatch(setColor1({ name: device.name, color: rgb }));
+      dispatch(setColor1({ name: device.name, color }));
     },
     [device.color1, device.name, dispatch],
   );
 
   const onLightnessChange = useCallback(
     (lightness: number) => {
-      const hsl = RGBToHSL(device.color1);
-      const rgb = HSLToRGB([hsl[0], 100, lightness]);
+      const hsl = device.color1;
+      const color = [hsl[0], 100, lightness] as HSLColor;
 
-      dispatch(setColor1({ name: device.name, color: rgb }));
+      dispatch(setColor1({ name: device.name, color }));
     },
     [device.color1, device.name, dispatch],
   );
