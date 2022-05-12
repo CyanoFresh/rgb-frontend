@@ -21,7 +21,7 @@ export function TopBar() {
   const handleAddDeviceClick = () => dispatch(addDevice());
 
   return (
-    <AppBar position="sticky" color="transparent">
+    <AppBar position="sticky" color="inherit">
       <Toolbar sx={{ justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <BatteryIcon level={currentDevice.batteryLevel} />
