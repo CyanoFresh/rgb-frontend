@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { rootReducer } from '../features';
 
 // import logger from 'redux-logger';
@@ -12,7 +12,7 @@ export function configureAppStore() {
     };
   }
 
-  return configureStore({
+  const store = configureStore({
     reducer: rootReducer,
     preloadedState: {
       devices: {
@@ -36,4 +36,20 @@ export function configureAppStore() {
     },
     ...middlewareConfig,
   });
+
+  // @ts-ignore
+  if (process.env.NODE_ENV !== 'production' && import.meta.webpackHot) {
+    // @ts-ignore
+    import.meta.webpackHot.accept(
+      '../features',
+      () => {
+        store.replaceReducer(combineReducers(rootReducer));
+      },
+      (...args: any) => {
+        console.log('rejected', ...args);
+      },
+    );
+  }
+
+  return store;
 }
