@@ -56,7 +56,11 @@ export function StaticMode() {
         <LightModeIcon />
 
         <Box sx={{ mx: 1, flexGrow: 1 }}>
-          <ColorSlider color={device.color1} onChangeEnd={onLightnessChange} />
+          <ColorSlider
+            color={device.color1}
+            colorValueIndex={2}
+            onChangeEnd={onLightnessChange}
+          />
         </Box>
 
         <LightModeOutlinedIcon />

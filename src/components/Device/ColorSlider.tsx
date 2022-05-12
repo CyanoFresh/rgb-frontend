@@ -4,55 +4,80 @@ import React, { useCallback, useEffect } from 'react';
 
 interface ColorSliderProps {
   color: HSLColor;
+  colorValueIndex?: 0 | 1 | 2;
   onChangeEnd: (lightness: number) => void;
+  orientation?: 'horizontal' | 'vertical';
+  maxValue?: number;
 }
 
-export function ColorSlider({ onChangeEnd, color }: ColorSliderProps) {
-  const lightness = React.useRef<number>(color[2]);
+export function ColorSlider({
+  onChangeEnd,
+  color,
+  colorValueIndex = 2,
+  orientation = 'horizontal',
+  maxValue = 50,
+}: ColorSliderProps) {
+  const valueRef = React.useRef<number>(color[colorValueIndex]);
   const sliderRef = React.useRef<HTMLDivElement>(null);
   const handleRef = React.useRef<HTMLDivElement>(null);
   const cleanup = React.useRef<() => void>(null as any);
 
-  const reactToLightnessChange = useCallback((newLightness: number) => {
-    if (handleRef.current) {
-      lightness.current = newLightness;
+  const reactToNewValue = useCallback(
+    (newValue: number) => {
+      if (handleRef.current && sliderRef.current) {
+        valueRef.current = newValue;
 
-      let position = (newLightness / 50) * sliderRef.current!.clientWidth;
-      position = Math.max(0, Math.min(position, sliderRef.current!.clientWidth));
+        const size =
+          orientation === 'horizontal'
+            ? sliderRef.current.clientWidth
+            : sliderRef.current.clientHeight;
 
-      handleRef.current.style.transform = `translateY(calc(50% - 10px)) translateX(calc(-50% + ${position}px))`;
-    }
-  }, []);
+        let position = (newValue / maxValue) * size;
+        position = Math.max(0, Math.min(position, size));
+
+        handleRef.current.style.transform = `translateY(7px) translateX(calc(-50% + ${position}px))`;
+      }
+    },
+    [maxValue, orientation],
+  );
 
   const onMove = useCallback(
     (e: PointerEvent | React.PointerEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
+      if (sliderRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
 
-      const target = sliderRef.current!;
+        const rect = sliderRef.current.getBoundingClientRect();
 
-      const rect = target.getBoundingClientRect();
+        let relativeCoordinate;
 
-      let x = e.clientX - rect.left;
-      x = Math.max(0, Math.min(x, target.clientWidth));
-      const lightness = (x / rect.width) * 50;
+        if (orientation === 'horizontal') {
+          const coordinate = e.clientX - rect.left;
+          relativeCoordinate = coordinate / rect.width;
+        } else if (orientation === 'vertical') {
+          const coordinate = e.clientY - rect.top;
+          relativeCoordinate = coordinate / rect.height;
+        } else {
+          throw new Error('Unknown orientation');
+        }
 
-      reactToLightnessChange(lightness);
+        const newValue = Math.max(0, Math.min(relativeCoordinate, maxValue)) * maxValue;
+
+        reactToNewValue(newValue);
+      }
     },
-    [reactToLightnessChange],
+    [maxValue, orientation, reactToNewValue],
   );
 
   const onMouseUp = useCallback(() => {
-    onChangeEnd(lightness.current);
+    onChangeEnd(valueRef.current);
 
     cleanup.current?.();
   }, [onChangeEnd]);
 
   const onMouseDown = useCallback(
     (e: React.PointerEvent) => {
-      if (cleanup.current) {
-        cleanup.current();
-      }
+      cleanup.current?.();
 
       window.addEventListener('pointermove', onMove, { passive: false });
       window.addEventListener('pointerup', onMouseUp, { passive: false });
@@ -74,8 +99,8 @@ export function ColorSlider({ onChangeEnd, color }: ColorSliderProps) {
   useEffect(() => () => cleanup.current?.(), []);
 
   useEffect(() => {
-    reactToLightnessChange(color[2]);
-  }, [color, reactToLightnessChange]);
+    reactToNewValue(color[colorValueIndex]);
+  }, [color, colorValueIndex, reactToNewValue]);
 
   return (
     <Box
@@ -92,7 +117,7 @@ export function ColorSlider({ onChangeEnd, color }: ColorSliderProps) {
     >
       <Box
         sx={{
-          background: `linear-gradient(90deg, #000000 0%, hsl(${color[0]}, 100%, 50%) 100%);`,
+          background: `linear-gradient(90deg, #000000, hsl(${color[0]}, 100%, 50%));`,
           padding: 1,
           borderRadius: 2,
           boxShadow: 4,

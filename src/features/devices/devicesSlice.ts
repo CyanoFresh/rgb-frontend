@@ -7,7 +7,8 @@ import {
   MODE_SERVICE_UUID,
 } from '../../utils/constants';
 import { RootState } from '../../app/store';
-import { HSLColor, HSLToRGB10bit, RGB10bitToHSL, RGBColor } from '../../utils/color';
+import { HSLColor, HSLToRGB10bit, RGBColor } from '../../utils/color';
+import { parseColorValue, parseModeValue, parseUint8Value } from './utils';
 
 export type ModeValue = 0 | 1 | 2;
 
@@ -44,22 +45,6 @@ const initialState: DevicesSlice = {
 };
 
 const devicesCache: DevicesCache = {};
-
-function parseModeValue(value: DataView): ModeValue {
-  const modeValue = value.getInt8(0);
-
-  return modeValue as ModeValue;
-}
-
-function parseColorValue(value: DataView): HSLColor {
-  const rgb = Array.from(new Uint16Array(value.buffer)) as RGBColor;
-
-  return RGB10bitToHSL(rgb);
-}
-
-function parseUint8Value(value: DataView) {
-  return value.getUint8(0);
-}
 
 export const addDevice = createAsyncThunk(
   'devices/add',
