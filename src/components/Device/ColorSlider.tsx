@@ -1,23 +1,41 @@
-import { HSLColor } from '../../utils/color';
 import { Box } from '@mui/material';
 import React, { useCallback, useEffect } from 'react';
 
 interface ColorSliderProps {
-  color: HSLColor;
-  colorValueIndex?: 0 | 1 | 2;
-  onChangeEnd: (lightness: number) => void;
+  value: number;
+  onChangeEnd: (newValue: number) => void;
+  background: string;
+  startIcon?: React.ReactNode;
+  endIcon?: React.ReactNode;
   orientation?: 'horizontal' | 'vertical';
+  minValue?: number;
   maxValue?: number;
+}
+
+function map(
+  x: number,
+  in_min: number,
+  in_max: number,
+  out_min: number,
+  out_max: number,
+) {
+  return Math.max(
+    out_min,
+    Math.min(((x - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min, out_max),
+  );
 }
 
 export function ColorSlider({
   onChangeEnd,
-  color,
-  colorValueIndex = 2,
+  value,
+  background,
+  startIcon,
+  endIcon,
   orientation = 'horizontal',
+  minValue = 0,
   maxValue = 50,
 }: ColorSliderProps) {
-  const valueRef = React.useRef<number>(color[colorValueIndex]);
+  const valueRef = React.useRef<number>(value);
   const sliderRef = React.useRef<HTMLDivElement>(null);
   const handleRef = React.useRef<HTMLDivElement>(null);
   const cleanup = React.useRef<() => void>(null as any);
@@ -32,13 +50,12 @@ export function ColorSlider({
             ? sliderRef.current.clientWidth
             : sliderRef.current.clientHeight;
 
-        let position = (newValue / maxValue) * size;
-        position = Math.max(0, Math.min(position, size));
+        const position = map(newValue, minValue, maxValue, 0, size);
 
         handleRef.current.style.transform = `translateY(7px) translateX(calc(-50% + ${position}px))`;
       }
     },
-    [maxValue, orientation],
+    [maxValue, minValue, orientation],
   );
 
   const onMove = useCallback(
@@ -54,19 +71,17 @@ export function ColorSlider({
         if (orientation === 'horizontal') {
           const coordinate = e.clientX - rect.left;
           relativeCoordinate = coordinate / rect.width;
-        } else if (orientation === 'vertical') {
+        } else {
           const coordinate = e.clientY - rect.top;
           relativeCoordinate = coordinate / rect.height;
-        } else {
-          throw new Error('Unknown orientation');
         }
 
-        const newValue = Math.max(0, Math.min(relativeCoordinate, maxValue)) * maxValue;
+        const newValue = map(relativeCoordinate, 0, 1, minValue, maxValue);
 
         reactToNewValue(newValue);
       }
     },
-    [maxValue, orientation, reactToNewValue],
+    [maxValue, minValue, orientation, reactToNewValue],
   );
 
   const onMouseUp = useCallback(() => {
@@ -99,48 +114,64 @@ export function ColorSlider({
   useEffect(() => () => cleanup.current?.(), []);
 
   useEffect(() => {
-    reactToNewValue(color[colorValueIndex]);
-  }, [color, colorValueIndex, reactToNewValue]);
+    reactToNewValue(value);
+  }, [value, reactToNewValue]);
 
   return (
     <Box
       sx={{
+        mt: 2,
         width: '100%',
-        position: 'relative',
-        touchAction: 'none',
-        userSelect: 'none',
-        cursor: 'grab',
-        py: 2,
+        maxWidth: 400,
+        display: 'flex',
+        alignItems: 'center',
       }}
-      ref={sliderRef}
-      onPointerDown={onMouseDown}
     >
-      <Box
-        sx={{
-          background: `linear-gradient(90deg, #000000, hsl(${color[0]}, 100%, 50%));`,
-          padding: 1,
-          borderRadius: 2,
-          boxShadow: 4,
-        }}
-      />
+      {startIcon}
 
       <Box
-        ref={handleRef}
         sx={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          padding: '1px',
-          width: 5,
-          height: 35,
-          borderRadius: 10,
-          border: '4px solid #fff',
-          borderTopWidth: 7,
-          borderBottomWidth: 7,
-          background: '#E0E0E0',
-          boxShadow: '0 0 10px rgba(0, 0, 0, 0.25)',
+          width: '100%',
+          position: 'relative',
+          touchAction: 'none',
+          userSelect: 'none',
+          cursor: 'grab',
+          py: 2,
+          mx: 2,
+          flexGrow: 1,
         }}
-      />
+        ref={sliderRef}
+        onPointerDown={onMouseDown}
+      >
+        <Box
+          sx={{
+            background: background,
+            padding: 1,
+            borderRadius: 2,
+            boxShadow: 4,
+          }}
+        />
+
+        <Box
+          ref={handleRef}
+          sx={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            padding: '1px',
+            width: 5,
+            height: 35,
+            borderRadius: 10,
+            border: '4px solid #fff',
+            borderTopWidth: 7,
+            borderBottomWidth: 7,
+            background: '#E0E0E0',
+            boxShadow: '0 0 10px rgba(0, 0, 0, 0.25)',
+          }}
+        />
+      </Box>
+
+      {endIcon}
     </Box>
   );
 }

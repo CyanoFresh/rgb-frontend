@@ -7,7 +7,7 @@ import {
   MODE_SERVICE_UUID,
 } from '../../utils/constants';
 import { RootState } from '../../app/store';
-import { HSLColor, HSLToRGB10bit, RGBColor } from '../../utils/color';
+import { Color, HSLColor, HSLToRGB10bit, RGBColor } from '../../utils/color';
 import { parseColorValue, parseModeValue, parseUint8Value } from './utils';
 
 export type ModeValue = 0 | 1 | 2;
@@ -236,15 +236,21 @@ export const setMode = createAsyncThunk(
 
 export const setColor1 = createAsyncThunk(
   'devices/setColor1',
-  async ({ name, color }: { name: string; color: RGBColor }) => {
+  async ({
+    name,
+    color,
+    convertFn = HSLToRGB10bit,
+  }: {
+    name: string;
+    color: RGBColor;
+    convertFn?: (input: Color) => Color;
+  }) => {
     if (!devicesCache[name]) {
       throw new Error('Device not found');
     }
 
-    const rgb = HSLToRGB10bit(color);
+    const rgb = convertFn(color);
     const data = Uint16Array.of(...rgb);
-
-    console.log(data);
 
     await devicesCache[name].color1Characteristic.writeValueWithoutResponse(data);
   },
