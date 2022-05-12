@@ -7,14 +7,14 @@
     "@emotion/styled": "^11.8.1",
     "@fontsource/inter": "^4.5.10",
     "@mui/icons-material": "^5.6.2",
-    "@mui/material": "^5.6.4",
+    "@mui/material": "^5.7.0",
     "@reduxjs/toolkit": "^1.8.1",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^12.1.4",
-    "@testing-library/user-event": "^14.0.4",
+    "@testing-library/user-event": "^14.1.1",
     "@types/jest": "^27.5.0",
-    "@types/node": "^17.0.31",
-    "@types/react": "^18.0.8",
+    "@types/node": "^17.0.32",
+    "@types/react": "^18.0.9",
     "@types/react-dom": "^18.0.3",
     "@types/web-bluetooth": "^0.0.14",
     "babel-plugin-import": "^1.13.5",
@@ -33,6 +33,7 @@
   "scripts": {
     "start": "react-app-rewired start",
     "build": "react-app-rewired build",
+    "analyze": "source-map-explorer 'build/static/js/*.js' --gzip",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject"
   },
@@ -57,6 +58,7 @@
     ]
   },
   "devDependencies": {
-    "@types/redux-logger": "^3.0.9"
+    "@types/redux-logger": "^3.0.9",
+    "source-map-explorer": "^2.5.2"
   }
 }
