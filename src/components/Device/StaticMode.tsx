@@ -25,7 +25,8 @@ export function StaticMode() {
   const onHueChange = useCallback(
     (hue: number) => {
       const hsl = device.color1;
-      const color = [hue, 100, hsl[2]] as HSLColor;
+      const lightness = hsl[2] !== 100 ? hsl[2] : 50;
+      const color = [hue, 100, lightness] as HSLColor;
 
       dispatch(setColor1({ name: device.name, color }));
     },
