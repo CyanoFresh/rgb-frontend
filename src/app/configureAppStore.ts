@@ -22,7 +22,7 @@ export function configureAppStore() {
             name: 'Device 1',
             batteryLevel: 56,
             color1: [0, 100, 50],
-            mode: 0,
+            mode: 1,
             turnOn: false,
           },
           {

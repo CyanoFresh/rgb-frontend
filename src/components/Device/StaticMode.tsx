@@ -4,7 +4,7 @@ import {
   setColor1,
   setTurnOn,
 } from '../../features/devices/devicesSlice';
-import React, { useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { Box, Button } from '@mui/material';
 import { ColorWheel } from './ColorWheel';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -33,46 +33,32 @@ export function StaticMode() {
   const dispatch = useAppDispatch();
 
   const lightness = device.color1[2];
-  const kelvin = rgb2kelvin(HSLToRGB(device.color1));
+  const kelvin = useMemo(() => rgb2kelvin(HSLToRGB(device.color1)), [...device.color1]);
 
-  const onHueChange = useCallback(
-    (hue: number) => {
-      const hsl = device.color1;
-      const lightness = hsl[2] !== 100 ? hsl[2] : 50;
-      const color = [hue, 100, lightness] as HSLColor;
+  const onHueChange = (hue: number) => {
+    const hsl = device.color1;
+    const lightness = hsl[2] !== 100 ? hsl[2] : 50;
+    const color = [hue, 100, lightness] as HSLColor;
 
-      dispatch(setColor1({ name: device.name, color }));
-    },
-    [device.color1, device.name, dispatch],
-  );
+    dispatch(setColor1({ name: device.name, color }));
+  };
 
-  const onLightnessChange = useCallback(
-    (lightness: number) => {
-      const hsl = device.color1;
-      const color = [hsl[0], 100, lightness] as HSLColor;
+  const onLightnessChange = (lightness: number) => {
+    const hsl = device.color1;
+    const color = [hsl[0], 100, lightness] as HSLColor;
 
-      console.log(lightness);
+    dispatch(setColor1({ name: device.name, color }));
+  };
 
-      dispatch(setColor1({ name: device.name, color }));
-    },
-    [device.color1, device.name, dispatch],
-  );
+  const onTemperatureChange = (temperature: number) => {
+    const rgb = kelvin2rgb(temperature);
+    const color = rgb.map((v) => v * 4) as RGBColor;
 
-  const onTemperatureChange = useCallback(
-    (temperature: number) => {
-      console.log({ temperature });
-      const rgb = kelvin2rgb(temperature);
-      console.log({ rgb });
-      const color = rgb.map((v) => v * 4) as RGBColor;
+    dispatch(setColor1({ name: device.name, convertFn: (color) => color, color }));
+  };
 
-      dispatch(setColor1({ name: device.name, convertFn: (color) => color, color }));
-    },
-    [device.name, dispatch],
-  );
-
-  const handleTurnOn = useCallback(() => {
+  const handleTurnOn = () =>
     dispatch(setTurnOn({ name: device.name, turnOn: !device.turnOn }));
-  }, [device.name, device.turnOn, dispatch]);
 
   return (
     <Box
