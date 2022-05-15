@@ -111,6 +111,13 @@ export function ColorWheel({ color, onChangeEnd }: ColorPickerProps) {
       const x = e.clientX - rect.x - rect.width / 2;
       const y = e.clientY - rect.y - rect.height / 2;
 
+      const radius = Math.sqrt(x * x + y * y);
+
+      if (radius > rect.width / 2) {
+        cleanup.current?.();
+        return;
+      }
+
       const angle = radToDeg(Math.atan2(y, x));
       const hue = (angle + 360 + 90) % 360;
 
@@ -127,9 +134,7 @@ export function ColorWheel({ color, onChangeEnd }: ColorPickerProps) {
 
   const onMouseDown = useCallback(
     (e: React.PointerEvent) => {
-      if (cleanup.current) {
-        cleanup.current();
-      }
+      cleanup.current?.();
 
       window.addEventListener('pointermove', onMove, { passive: false });
       window.addEventListener('pointerup', onMouseUp, { passive: false });
