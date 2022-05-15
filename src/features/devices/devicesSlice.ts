@@ -5,6 +5,7 @@ import {
   COLOR1_CHARACTERISTIC_UUID,
   MODE_CHARACTERISTIC_UUID,
   MODE_SERVICE_UUID,
+  TURN_ON_CHARACTERISTIC_UUID,
 } from '../../utils/constants';
 import { RootState } from '../../app/store';
 import { Color, HSLColor, HSLToRGB10bit, RGBColor } from '../../utils/color';
@@ -19,6 +20,7 @@ interface DeviceInfoMinimal {
 export interface DeviceInfo extends DeviceInfoMinimal {
   batteryLevel: number;
   mode: ModeValue;
+  turnOn: boolean;
   color1: HSLColor;
 }
 
@@ -31,6 +33,7 @@ export interface DevicesSlice {
 interface DeviceCache {
   bleDevice: BluetoothDevice;
   modeCharacteristic: BluetoothRemoteGATTCharacteristic;
+  turnOnCharacteristic: BluetoothRemoteGATTCharacteristic;
   color1Characteristic: BluetoothRemoteGATTCharacteristic;
 }
 
@@ -111,31 +114,39 @@ export const addDevice = createAsyncThunk(
 
     console.log(`services fetched`);
 
-    const [modeCharacteristic, color1Characteristic, batteryCharacteristic] =
-      await Promise.all([
-        modeService.getCharacteristic(MODE_CHARACTERISTIC_UUID),
-        modeService.getCharacteristic(COLOR1_CHARACTERISTIC_UUID),
-        batteryService.getCharacteristic(BATTERY_CHARACTERISTIC_UUID),
-      ]);
+    const [
+      modeCharacteristic,
+      turnOnCharacteristic,
+      color1Characteristic,
+      batteryCharacteristic,
+    ] = await Promise.all([
+      modeService.getCharacteristic(MODE_CHARACTERISTIC_UUID),
+      modeService.getCharacteristic(TURN_ON_CHARACTERISTIC_UUID),
+      modeService.getCharacteristic(COLOR1_CHARACTERISTIC_UUID),
+      batteryService.getCharacteristic(BATTERY_CHARACTERISTIC_UUID),
+    ]);
 
     console.log(`characteristics fetched`);
 
     devicesCache[device.name!] = {
       bleDevice: device,
       modeCharacteristic,
+      turnOnCharacteristic,
       color1Characteristic,
     };
 
     const modeValue = await modeCharacteristic.readValue();
+    const turnOnValue = await modeCharacteristic.readValue();
     const color1Value = await color1Characteristic.readValue();
     const batteryValue = await batteryCharacteristic.readValue();
 
     console.log(`values read`);
 
-    let mode, color1, batteryLevel;
+    let mode, turnOn, color1, batteryLevel;
 
     try {
       mode = parseModeValue(modeValue);
+      turnOn = Boolean(parseUint8Value(turnOnValue));
       color1 = parseColorValue(color1Value);
       batteryLevel = parseUint8Value(batteryValue);
     } catch (e) {
@@ -148,6 +159,7 @@ export const addDevice = createAsyncThunk(
       name: device.name!,
       batteryLevel,
       mode,
+      turnOn,
       color1,
     };
 
@@ -163,6 +175,20 @@ export const addDevice = createAsyncThunk(
         updateDevice({
           name: deviceInfo.name,
           mode,
+        }),
+      );
+    });
+
+    turnOnCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
+      console.log('turnOn characteristicvaluechanged');
+      const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+
+      const turnOn = Boolean(parseUint8Value(value));
+
+      dispatch(
+        updateDevice({
+          name: deviceInfo.name,
+          turnOn,
         }),
       );
     });
@@ -198,6 +224,7 @@ export const addDevice = createAsyncThunk(
     });
 
     await modeCharacteristic.startNotifications();
+    await turnOnCharacteristic.startNotifications();
     await color1Characteristic.startNotifications();
     await batteryCharacteristic.startNotifications();
 
@@ -230,6 +257,19 @@ export const setMode = createAsyncThunk(
 
     await devicesCache[name].modeCharacteristic.writeValueWithoutResponse(
       Uint8Array.of(mode),
+    );
+  },
+);
+
+export const setTurnOn = createAsyncThunk(
+  'devices/setTurnOn',
+  async ({ name, turnOn }: { name: string; turnOn: boolean }) => {
+    if (!devicesCache[name]) {
+      throw new Error('Device not found');
+    }
+
+    await devicesCache[name].turnOnCharacteristic.writeValueWithoutResponse(
+      Uint8Array.of(turnOn ? 1 : 0),
     );
   },
 );

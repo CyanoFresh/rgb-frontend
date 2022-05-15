@@ -1,7 +1,11 @@
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { selectCurrentDevice, setColor1 } from '../../features/devices/devicesSlice';
+import {
+  selectCurrentDevice,
+  setColor1,
+  setTurnOn,
+} from '../../features/devices/devicesSlice';
 import React, { useCallback } from 'react';
-import { Box } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { ColorWheel } from './ColorWheel';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import LightModeOutlinedIcon from '@mui/icons-material/LightModeOutlined';
@@ -18,6 +22,7 @@ import {
 } from '../../utils/color';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import AcUnitIcon from '@mui/icons-material/AcUnit';
+import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 
 const kelvinsGradientCss = buildKelvinGradient()
   .map((step) => `rgb(${step[0].join(', ')}) ${step[1]}%`)
@@ -65,6 +70,10 @@ export function StaticMode() {
     [device.name, dispatch],
   );
 
+  const handleTurnOn = useCallback(() => {
+    dispatch(setTurnOn({ name: device.name, turnOn: !device.turnOn }));
+  }, [device.name, device.turnOn, dispatch]);
+
   return (
     <Box
       sx={{
@@ -77,9 +86,12 @@ export function StaticMode() {
     >
       <ColorWheel color={device.color1} onChangeEnd={onHueChange} />
 
+      <Box sx={{ my: 1 }}></Box>
+
       <ColorSlider
         value={lightness}
         onChangeEnd={onLightnessChange}
+        minValue={1}
         background={`linear-gradient(90deg, #000, hsl(${device.color1[0]}, 100%, 50%));`}
         startIcon={<LightModeIcon />}
         endIcon={<LightModeOutlinedIcon />}
@@ -102,6 +114,16 @@ export function StaticMode() {
         startIcon={<LocalFireDepartmentIcon />}
         endIcon={<AcUnitIcon />}
       />
+
+      <Button
+        startIcon={<PowerSettingsNewIcon />}
+        variant="contained"
+        size="large"
+        sx={{ px: 4, mt: 6 }}
+        onClick={handleTurnOn}
+      >
+        Turn {device.turnOn ? 'off' : 'on'}
+      </Button>
     </Box>
   );
 }
