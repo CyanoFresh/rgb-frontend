@@ -120,9 +120,7 @@ export function ColorSlider({
   return (
     <Box
       sx={{
-        mt: 2,
         width: '100%',
-        maxWidth: 400,
         display: 'flex',
         alignItems: 'center',
       }}

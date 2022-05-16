@@ -24,6 +24,7 @@ export function configureAppStore() {
             color1: [0, 100, 50],
             mode: 1,
             turnOn: false,
+            speed: 100,
           },
           {
             name: 'Device 2',
@@ -31,6 +32,7 @@ export function configureAppStore() {
             color1: [135, 100, 50],
             mode: 0,
             turnOn: true,
+            speed: 50,
           },
         ],
         selectedDeviceIndex: 0,

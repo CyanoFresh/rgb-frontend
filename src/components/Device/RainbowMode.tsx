@@ -1,7 +1,11 @@
 import { Box, Button, Typography } from '@mui/material';
 import React from 'react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { selectCurrentDevice, setTurnOn } from '../../features/devices/devicesSlice';
+import {
+  selectCurrentDevice,
+  setSpeed,
+  setTurnOn,
+} from '../../features/devices/devicesSlice';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import { ColorSlider } from './ColorSlider';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -17,11 +21,17 @@ export function RainbowMode() {
   const onSpeedChange = (speed: number) => {
     console.log({ speed });
 
-    // dispatch(setColor1({ name: device.name, color }));
+    dispatch(setSpeed({ name: device.name, speed }));
   };
 
   return (
-    <Box sx={{ py: 3 }}>
+    <Box
+      sx={{
+        py: 3,
+        maxWidth: 500,
+        mx: 'auto',
+      }}
+    >
       <Typography
         fontWeight="bold"
         textTransform="uppercase"
@@ -50,8 +60,9 @@ export function RainbowMode() {
         <ColorSlider
           value={10}
           onChangeEnd={onSpeedChange}
-          minValue={1}
-          background={`#fff`}
+          minValue={0}
+          maxValue={255}
+          background="#ffffff"
           startIcon={<LightModeIcon />}
           endIcon={<LightModeOutlinedIcon />}
         />

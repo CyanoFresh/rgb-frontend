@@ -66,40 +66,47 @@ export function StaticMode() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        p: 3,
+        maxWidth: 400,
         pb: 15,
+        mx: 'auto',
       }}
     >
-      <ColorWheel color={device.color1} onChangeEnd={onHueChange} />
+      <Box sx={{ p: 3, width: '100%' }}>
+        <ColorWheel color={device.color1} onChangeEnd={onHueChange} />
+      </Box>
 
-      <Box sx={{ my: 1 }}></Box>
+      <Box sx={{ my: 1, px: 2, width: '100%' }}>
+        <ColorSlider
+          value={lightness}
+          onChangeEnd={onLightnessChange}
+          minValue={1}
+          background={`linear-gradient(90deg, #000, hsl(${device.color1[0]}, 100%, 50%));`}
+          startIcon={<LightModeIcon />}
+          endIcon={<LightModeOutlinedIcon />}
+        />
+      </Box>
 
-      <ColorSlider
-        value={lightness}
-        onChangeEnd={onLightnessChange}
-        minValue={1}
-        background={`linear-gradient(90deg, #000, hsl(${device.color1[0]}, 100%, 50%));`}
-        startIcon={<LightModeIcon />}
-        endIcon={<LightModeOutlinedIcon />}
-      />
+      <Box sx={{ my: 1, px: 2, width: '100%' }}>
+        <ColorSlider
+          value={lightness >= 50 ? 100 - lightness : 50}
+          onChangeEnd={(lightness) => onLightnessChange(100 - lightness)}
+          background={`linear-gradient(90deg, #fff, hsl(${device.color1[0]}, 100%, 50%));`}
+          startIcon={<LightModeOutlinedIcon />}
+          endIcon={<LightModeIcon />}
+        />
+      </Box>
 
-      <ColorSlider
-        value={lightness >= 50 ? 100 - lightness : 50}
-        onChangeEnd={(lightness) => onLightnessChange(100 - lightness)}
-        background={`linear-gradient(90deg, #fff, hsl(${device.color1[0]}, 100%, 50%));`}
-        startIcon={<LightModeOutlinedIcon />}
-        endIcon={<LightModeIcon />}
-      />
-
-      <ColorSlider
-        value={kelvin}
-        minValue={MIN_KELVIN}
-        maxValue={MAX_KELVIN}
-        onChangeEnd={onTemperatureChange}
-        background={`linear-gradient(90deg, ${kelvinsGradientCss})`}
-        startIcon={<LocalFireDepartmentIcon />}
-        endIcon={<AcUnitIcon />}
-      />
+      <Box sx={{ my: 1, px: 2, width: '100%' }}>
+        <ColorSlider
+          value={kelvin}
+          minValue={MIN_KELVIN}
+          maxValue={MAX_KELVIN}
+          onChangeEnd={onTemperatureChange}
+          background={`linear-gradient(90deg, ${kelvinsGradientCss})`}
+          startIcon={<LocalFireDepartmentIcon />}
+          endIcon={<AcUnitIcon />}
+        />
+      </Box>
 
       <Button
         startIcon={<PowerSettingsNewIcon />}

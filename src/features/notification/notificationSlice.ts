@@ -5,6 +5,7 @@ import {
   disconnectDevice,
   setColor1,
   setMode,
+  setSpeed,
   setTurnOn,
 } from '../devices/devicesSlice';
 
@@ -45,6 +46,11 @@ const notificationSlice = createSlice({
       state.type = 'error';
     });
     builder.addCase(setTurnOn.rejected, (state, action) => {
+      state.open = true;
+      state.message = action.error.message as string;
+      state.type = 'error';
+    });
+    builder.addCase(setSpeed.rejected, (state, action) => {
       state.open = true;
       state.message = action.error.message as string;
       state.type = 'error';

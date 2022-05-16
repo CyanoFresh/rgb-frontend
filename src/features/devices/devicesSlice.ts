@@ -5,6 +5,7 @@ import {
   COLOR1_CHARACTERISTIC_UUID,
   MODE_CHARACTERISTIC_UUID,
   MODE_SERVICE_UUID,
+  SPEED_CHARACTERISTIC_UUID,
   TURN_ON_CHARACTERISTIC_UUID,
 } from '../../utils/constants';
 import { RootState } from '../../app/store';
@@ -22,6 +23,7 @@ export interface DeviceInfo extends DeviceInfoMinimal {
   mode: ModeValue;
   turnOn: boolean;
   color1: HSLColor;
+  speed: number;
 }
 
 export interface DevicesSlice {
@@ -35,6 +37,7 @@ interface DeviceCache {
   modeCharacteristic: BluetoothRemoteGATTCharacteristic;
   turnOnCharacteristic: BluetoothRemoteGATTCharacteristic;
   color1Characteristic: BluetoothRemoteGATTCharacteristic;
+  speedCharacteristic: BluetoothRemoteGATTCharacteristic;
 }
 
 interface DevicesCache {
@@ -115,15 +118,17 @@ export const addDevice = createAsyncThunk(
     console.log(`services fetched`);
 
     const [
+      batteryCharacteristic,
       modeCharacteristic,
       turnOnCharacteristic,
       color1Characteristic,
-      batteryCharacteristic,
+      speedCharacteristic,
     ] = await Promise.all([
+      batteryService.getCharacteristic(BATTERY_CHARACTERISTIC_UUID),
       modeService.getCharacteristic(MODE_CHARACTERISTIC_UUID),
       modeService.getCharacteristic(TURN_ON_CHARACTERISTIC_UUID),
       modeService.getCharacteristic(COLOR1_CHARACTERISTIC_UUID),
-      batteryService.getCharacteristic(BATTERY_CHARACTERISTIC_UUID),
+      modeService.getCharacteristic(SPEED_CHARACTERISTIC_UUID),
     ]);
 
     console.log(`characteristics fetched`);
@@ -133,22 +138,25 @@ export const addDevice = createAsyncThunk(
       modeCharacteristic,
       turnOnCharacteristic,
       color1Characteristic,
+      speedCharacteristic,
     };
 
+    const batteryValue = await batteryCharacteristic.readValue();
     const modeValue = await modeCharacteristic.readValue();
     const turnOnValue = await modeCharacteristic.readValue();
     const color1Value = await color1Characteristic.readValue();
-    const batteryValue = await batteryCharacteristic.readValue();
+    const speedValue = await speedCharacteristic.readValue();
 
     console.log(`values read`);
 
-    let mode, turnOn, color1, batteryLevel;
+    let batteryLevel, mode, turnOn, color1, speed;
 
     try {
+      batteryLevel = parseUint8Value(batteryValue);
       mode = parseModeValue(modeValue);
       turnOn = Boolean(parseUint8Value(turnOnValue));
       color1 = parseColorValue(color1Value);
-      batteryLevel = parseUint8Value(batteryValue);
+      speed = parseUint8Value(speedValue);
     } catch (e) {
       console.log(e);
       debugger;
@@ -161,6 +169,7 @@ export const addDevice = createAsyncThunk(
       mode,
       turnOn,
       color1,
+      speed,
     };
 
     dispatch(deviceConnected(deviceInfo));
@@ -208,6 +217,20 @@ export const addDevice = createAsyncThunk(
       );
     });
 
+    speedCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
+      console.log('speed characteristicvaluechanged');
+      const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+
+      const speed = parseUint8Value(value);
+
+      dispatch(
+        updateDevice({
+          name: deviceInfo.name,
+          speed,
+        }),
+      );
+    });
+
     batteryCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
       console.log('battery characteristicvaluechanged');
 
@@ -223,10 +246,11 @@ export const addDevice = createAsyncThunk(
       );
     });
 
+    await batteryCharacteristic.startNotifications();
     await modeCharacteristic.startNotifications();
     await turnOnCharacteristic.startNotifications();
     await color1Characteristic.startNotifications();
-    await batteryCharacteristic.startNotifications();
+    await speedCharacteristic.startNotifications();
 
     console.log(`notifications started`);
   },
@@ -257,6 +281,19 @@ export const setMode = createAsyncThunk(
 
     await devicesCache[name].modeCharacteristic.writeValueWithoutResponse(
       Uint8Array.of(mode),
+    );
+  },
+);
+
+export const setSpeed = createAsyncThunk(
+  'devices/setSpeed',
+  async ({ name, speed }: { name: string; speed: number }) => {
+    if (!devicesCache[name]) {
+      throw new Error('Device not found');
+    }
+
+    await devicesCache[name].speedCharacteristic.writeValueWithoutResponse(
+      Uint8Array.of(speed),
     );
   },
 );
