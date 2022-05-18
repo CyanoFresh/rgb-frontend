@@ -143,7 +143,7 @@ export const addDevice = createAsyncThunk(
 
     const batteryValue = await batteryCharacteristic.readValue();
     const modeValue = await modeCharacteristic.readValue();
-    const turnOnValue = await modeCharacteristic.readValue();
+    const turnOnValue = await turnOnCharacteristic.readValue();
     const color1Value = await color1Characteristic.readValue();
     const speedValue = await speedCharacteristic.readValue();
 
