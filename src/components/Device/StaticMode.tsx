@@ -71,7 +71,7 @@ export function StaticMode() {
         mx: 'auto',
       }}
     >
-      <Box sx={{ p: 3, width: '100%' }}>
+      <Box sx={{ p: 3, width: '100%', display: 'flex', justifyContent: 'center' }}>
         <ColorWheel color={device.color1} onChangeEnd={onHueChange} />
       </Box>
 
