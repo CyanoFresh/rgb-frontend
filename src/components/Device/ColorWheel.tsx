@@ -85,6 +85,7 @@ interface ColorPickerProps {
 export function ColorWheel({ color, onChangeEnd }: ColorPickerProps) {
   const wheelRef = React.useRef<HTMLDivElement>(null);
   const handleRef = React.useRef<HTMLDivElement>(null);
+  const isDraggingRef = React.useRef<boolean>(false);
   const currentColorCircleRef = React.useRef<HTMLDivElement>(null);
   const cleanup = React.useRef<() => void>(null as any);
   const hueRef = React.useRef<number>(color[0]);
@@ -113,10 +114,13 @@ export function ColorWheel({ color, onChangeEnd }: ColorPickerProps) {
 
       const radius = Math.sqrt(x * x + y * y);
 
-      if (radius > rect.width / 2) {
+      // Check if we are inside the wheel
+      if (!isDraggingRef.current && radius > rect.width / 2) {
         cleanup.current?.();
         return;
       }
+
+      isDraggingRef.current = true;
 
       const angle = radToDeg(Math.atan2(y, x));
       const hue = (angle + 360 + 90) % 360;
@@ -144,6 +148,7 @@ export function ColorWheel({ color, onChangeEnd }: ColorPickerProps) {
         window.removeEventListener('pointerup', onMouseUp);
 
         cleanup.current = null as any;
+        isDraggingRef.current = false;
       };
 
       // Handle click as a first move
