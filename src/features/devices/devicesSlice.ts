@@ -9,7 +9,7 @@ import {
   TURN_ON_CHARACTERISTIC_UUID,
 } from '../../utils/constants';
 import { RootState } from '../../app/store';
-import { Color, HSLColor, HSLToRGB10bit, RGBColor } from '../../utils/color';
+import { Color, HSLColor, HSLToRGB12bit, RGBColor } from '../../utils/color';
 import { parseColorValue, parseModeValue, parseUint8Value } from './utils';
 
 export type ModeValue = 0 | 1 | 2;
@@ -316,7 +316,7 @@ export const setColor1 = createAsyncThunk(
   async ({
     name,
     color,
-    convertFn = HSLToRGB10bit,
+    convertFn = HSLToRGB12bit,
   }: {
     name: string;
     color: RGBColor;
@@ -327,6 +327,7 @@ export const setColor1 = createAsyncThunk(
     }
 
     const rgb = convertFn(color);
+    console.log(rgb);
     const data = Uint16Array.of(...rgb);
 
     await devicesCache[name].color1Characteristic.writeValueWithoutResponse(data);

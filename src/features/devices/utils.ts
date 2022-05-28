@@ -1,4 +1,4 @@
-import { HSLColor, RGB10bitToHSL, RGBColor } from '../../utils/color';
+import { HSLColor, RGB12bitToHSL, RGBColor } from '../../utils/color';
 import { ModeValue } from './devicesSlice';
 
 export function parseModeValue(value: DataView): ModeValue {
@@ -10,7 +10,7 @@ export function parseModeValue(value: DataView): ModeValue {
 export function parseColorValue(value: DataView): HSLColor {
   const rgb = Array.from(new Uint16Array(value.buffer)) as RGBColor;
 
-  return RGB10bitToHSL(rgb);
+  return RGB12bitToHSL(rgb);
 }
 
 export function parseUint8Value(value: DataView) {

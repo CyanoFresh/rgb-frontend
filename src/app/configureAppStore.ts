@@ -1,5 +1,6 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { rootReducer } from '../features';
+import { DevicesSlice } from '../features/devices/devicesSlice';
 
 // import logger from 'redux-logger';
 
@@ -36,7 +37,7 @@ export function configureAppStore() {
           },
         ],
         selectedDeviceIndex: 0,
-      },
+      } as DevicesSlice,
     },
     ...middlewareConfig,
   });

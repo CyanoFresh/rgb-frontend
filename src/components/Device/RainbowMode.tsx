@@ -58,10 +58,10 @@ export function RainbowMode() {
         </Typography>
 
         <ColorSlider
-          value={10}
+          value={device.speed}
           onChangeEnd={onSpeedChange}
           minValue={0}
-          maxValue={255}
+          maxValue={254}
           background="#ffffff"
           startIcon={<LightModeIcon />}
           endIcon={<LightModeOutlinedIcon />}

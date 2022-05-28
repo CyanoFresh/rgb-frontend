@@ -29,6 +29,7 @@ export const RGBToHSL = ([r, g, b]: RGBColor, bitDepth = 8): HSLColor => {
 };
 
 export const RGB10bitToHSL = ([r, g, b]: RGBColor): HSLColor => RGBToHSL([r, g, b], 10);
+export const RGB12bitToHSL = ([r, g, b]: RGBColor): HSLColor => RGBToHSL([r, g, b], 12);
 
 /**
  * @param h Hue
@@ -53,6 +54,7 @@ export const HSLToRGB = ([h, s, l]: HSLColor, bitDepth = 8): RGBColor => {
 };
 
 export const HSLToRGB10bit = ([h, s, l]: HSLColor): RGBColor => HSLToRGB([h, s, l], 10);
+export const HSLToRGB12bit = ([h, s, l]: HSLColor): RGBColor => HSLToRGB([h, s, l], 12);
 
 export function radToDeg(rad: number): number {
   return (rad * 180) / Math.PI;
