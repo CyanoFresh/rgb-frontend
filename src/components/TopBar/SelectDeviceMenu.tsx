@@ -35,7 +35,7 @@ export function SelectDeviceMenu() {
         sx={{
           '& .MuiMenu-paper': {
             borderRadius: 4,
-            minWidth: 270,
+            minWidth: 300,
           },
           '& .MuiMenu-list': {
             padding: 0,

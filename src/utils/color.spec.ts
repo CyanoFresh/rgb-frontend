@@ -1,14 +1,14 @@
-import { buildKelvinGradient, HSLToRGB10bit, RGB10bitToHSL } from './color';
+import { buildKelvinGradient, HSLToRGB12bit, RGB12bitToHSL } from './color';
 
 describe('Color utils', () => {
   it('HSLToRGB10bit() correct conversion', () => {
-    expect(HSLToRGB10bit([0, 100, 50])).toStrictEqual([1023, 0, 0]);
-    expect(HSLToRGB10bit([0, 100, 0])).toStrictEqual([0, 0, 0]);
+    expect(HSLToRGB12bit([0, 100, 50])).toStrictEqual([4095, 0, 0]);
+    expect(HSLToRGB12bit([0, 100, 0])).toStrictEqual([0, 0, 0]);
   });
 
-  it('RGB10bitToHSL() correct conversion', () => {
-    expect(RGB10bitToHSL([1023, 0, 0])).toStrictEqual([0, 100, 50]);
-    expect(RGB10bitToHSL([0, 0, 0])).toStrictEqual([0, 0, 0]);
+  it('RGB12bitToHSL() correct conversion', () => {
+    expect(RGB12bitToHSL([4095, 0, 0])).toStrictEqual([0, 100, 50]);
+    expect(RGB12bitToHSL([0, 0, 0])).toStrictEqual([0, 0, 0]);
   });
 
   it('buildKelvinGradient()', () => {

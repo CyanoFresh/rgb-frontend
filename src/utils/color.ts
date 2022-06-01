@@ -28,7 +28,6 @@ export const RGBToHSL = ([r, g, b]: RGBColor, bitDepth = 8): HSLColor => {
   ];
 };
 
-export const RGB10bitToHSL = ([r, g, b]: RGBColor): HSLColor => RGBToHSL([r, g, b], 10);
 export const RGB12bitToHSL = ([r, g, b]: RGBColor): HSLColor => RGBToHSL([r, g, b], 12);
 
 /**
@@ -53,12 +52,9 @@ export const HSLToRGB = ([h, s, l]: HSLColor, bitDepth = 8): RGBColor => {
   return [multiplier * f(0), multiplier * f(8), multiplier * f(4)];
 };
 
-export const HSLToRGB10bit = ([h, s, l]: HSLColor): RGBColor => HSLToRGB([h, s, l], 10);
 export const HSLToRGB12bit = ([h, s, l]: HSLColor): RGBColor => HSLToRGB([h, s, l], 12);
 
-export function radToDeg(rad: number): number {
-  return (rad * 180) / Math.PI;
-}
+export const radToDeg = (rad: number): number => (rad * 180) / Math.PI;
 
 /**
  * @link https://github.com/neilbartlett/color-temperature/blob/master/index.js
@@ -122,7 +118,7 @@ export function rgb2kelvin([r, , b]: RGBColor): number {
   return Math.round(temperature);
 }
 
-export const MIN_KELVIN = 2000;
+export const MIN_KELVIN = 1000;
 export const MAX_KELVIN = 9000;
 
 export function buildKelvinGradient(

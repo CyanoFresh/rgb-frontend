@@ -52,7 +52,7 @@ export function StaticMode() {
 
   const onTemperatureChange = (temperature: number) => {
     const rgb = kelvin2rgb(temperature);
-    const color = rgb.map((v) => v * 4) as RGBColor;
+    const color = rgb.map((v) => v * 16) as RGBColor;
 
     dispatch(setColor1({ name: device.name, convertFn: (color) => color, color }));
   };
