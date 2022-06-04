@@ -1,44 +1,47 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { rootReducer } from '../features';
-import { DevicesSlice } from '../features/devices/devicesSlice';
 
-// import logger from 'redux-logger';
+import logger from 'redux-logger';
 
 export function configureAppStore() {
   let middlewareConfig = {};
+  let preloadedState = {};
 
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV !== 'production') {
     middlewareConfig = {
-      // middleware: (getDefaultMiddleware: any) => getDefaultMiddleware().concat(logger),
+      middleware: (getDefaultMiddleware: any) => getDefaultMiddleware().concat(logger),
+    };
+    preloadedState = {
+      preloadedState: {
+        // devices: {
+        //   connecting: false,
+        //   devices: [
+        //     {
+        //       name: 'Device 1',
+        //       batteryLevel: 56,
+        //       color1: [0, 100, 50],
+        //       mode: 1,
+        //       turnOn: false,
+        //       speed: 100,
+        //     },
+        //     {
+        //       name: 'Device 2',
+        //       batteryLevel: 77,
+        //       color1: [135, 100, 50],
+        //       mode: 0,
+        //       turnOn: true,
+        //       speed: 50,
+        //     },
+        //   ],
+        //   selectedDeviceIndex: 0,
+        // } as DevicesSlice,
+      },
     };
   }
 
   const store = configureStore({
     reducer: rootReducer,
-    preloadedState: {
-      devices: {
-        connecting: false,
-        devices: [
-          {
-            name: 'Device 1',
-            batteryLevel: 56,
-            color1: [0, 100, 50],
-            mode: 1,
-            turnOn: false,
-            speed: 100,
-          },
-          {
-            name: 'Device 2',
-            batteryLevel: 77,
-            color1: [135, 100, 50],
-            mode: 0,
-            turnOn: true,
-            speed: 50,
-          },
-        ],
-        selectedDeviceIndex: 0,
-      } as DevicesSlice,
-    },
+    ...preloadedState,
     ...middlewareConfig,
   });
 

@@ -1,5 +1,5 @@
 import { HSLColor, RGB12bitToHSL, RGBColor } from '../../utils/color';
-import { ModeValue } from './devicesSlice';
+import { ModeValue } from './types';
 
 export function parseModeValue(value: DataView): ModeValue {
   const modeValue = value.getInt8(0);

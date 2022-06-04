@@ -3,6 +3,7 @@ import {
   addDevice,
   deviceDisconnected,
   disconnectDevice,
+  setBrightness,
   setColor1,
   setMode,
   setSpeed,
@@ -35,36 +36,24 @@ const notificationSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(addDevice.rejected, (state, action) => {
-      state.open = true;
-      state.message = action.error.message as string;
-      state.type = 'error';
+    const rejectableActions = [
+      addDevice,
+      setMode,
+      setTurnOn,
+      setColor1,
+      setBrightness,
+      setSpeed,
+      disconnectDevice,
+    ];
+
+    rejectableActions.forEach((action) => {
+      builder.addCase(action.rejected, (state, action) => {
+        state.open = true;
+        state.message = action.error.message as string;
+        state.type = 'error';
+      });
     });
-    builder.addCase(setMode.rejected, (state, action) => {
-      state.open = true;
-      state.message = action.error.message as string;
-      state.type = 'error';
-    });
-    builder.addCase(setTurnOn.rejected, (state, action) => {
-      state.open = true;
-      state.message = action.error.message as string;
-      state.type = 'error';
-    });
-    builder.addCase(setSpeed.rejected, (state, action) => {
-      state.open = true;
-      state.message = action.error.message as string;
-      state.type = 'error';
-    });
-    builder.addCase(setColor1.rejected, (state, action) => {
-      state.open = true;
-      state.message = action.error.message as string;
-      state.type = 'error';
-    });
-    builder.addCase(disconnectDevice.rejected, (state, action) => {
-      state.open = true;
-      state.message = action.error.message as string;
-      state.type = 'error';
-    });
+
     builder.addCase(deviceDisconnected, (state, action) => {
       state.open = true;
       state.message = `Device ${action.payload.name} disconnected`;

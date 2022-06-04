@@ -10,6 +10,7 @@ export const MODE_CHARACTERISTIC_UUID = '20103538-ff6b-4c7f-9aba-36a32be2c7c2';
 export const COLOR1_CHARACTERISTIC_UUID = '5903b942-0ce7-42c2-a29f-ff434521fbe2';
 export const TURN_ON_CHARACTERISTIC_UUID = 'c9af1949-4275-46ec-9d63-f01fe45e9477';
 export const SPEED_CHARACTERISTIC_UUID = '74d51f60-ed42-4f82-b189-0fab7ffa7cd9';
+export const BRIGHTNESS_CHARACTERISTIC_UUID = 'a17d62aa-0b5f-462c-af21-14d6085bbc4b';
 
 export interface Mode {
   name: string;

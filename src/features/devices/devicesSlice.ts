@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
   BATTERY_CHARACTERISTIC_UUID,
   BATTERY_SERVICE_UUID,
+  BRIGHTNESS_CHARACTERISTIC_UUID,
   COLOR1_CHARACTERISTIC_UUID,
   MODE_CHARACTERISTIC_UUID,
   MODE_SERVICE_UUID,
@@ -9,45 +10,15 @@ import {
   TURN_ON_CHARACTERISTIC_UUID,
 } from '../../utils/constants';
 import { RootState } from '../../app/store';
-import { Color, HSLColor, HSLToRGB12bit, RGBColor } from '../../utils/color';
+import { Color, HSLToRGB12bit, RGBColor } from '../../utils/color';
 import { parseColorValue, parseModeValue, parseUint8Value } from './utils';
-
-export type ModeValue = 0 | 1 | 2;
-
-interface DeviceInfoMinimal {
-  name: string;
-}
-
-export interface DeviceInfo extends DeviceInfoMinimal {
-  batteryLevel: number;
-  mode: ModeValue;
-  turnOn: boolean;
-  color1: HSLColor;
-  speed: number;
-}
-
-export interface DevicesSlice {
-  connecting: boolean;
-  devices: DeviceInfo[];
-  selectedDeviceIndex: number;
-}
-
-interface DeviceCache {
-  bleDevice: BluetoothDevice;
-  modeCharacteristic: BluetoothRemoteGATTCharacteristic;
-  turnOnCharacteristic: BluetoothRemoteGATTCharacteristic;
-  color1Characteristic: BluetoothRemoteGATTCharacteristic;
-  speedCharacteristic: BluetoothRemoteGATTCharacteristic;
-}
-
-interface DevicesCache {
-  [deviceId: string]: DeviceCache;
-}
+import { DeviceInfo, DeviceInfoMinimal, DevicesCache, DevicesSlice } from './types';
 
 const initialState: DevicesSlice = {
   connecting: false,
   devices: [],
   selectedDeviceIndex: 0,
+  bluetoothEnabled: null,
 };
 
 const devicesCache: DevicesCache = {};
@@ -71,188 +42,231 @@ export const addDevice = createAsyncThunk(
         optionalServices: ['battery_service'],
       });
     } catch (e) {
-      // Prettify the error message
-      if (e instanceof DOMException && e.name === 'NotFoundError') {
-        throw new Error(e.message);
+      if (
+        e instanceof DOMException &&
+        e.name === 'NotFoundError' &&
+        e.message === 'User cancelled the requestDevice() chooser.'
+      ) {
+        // No error here, user just cancelled the request
+        return;
       }
 
       throw e;
     }
 
-    if (!device.gatt) {
-      throw new Error('Bluetooth device is not supported');
-    }
+    /**
+     * There are two possible events that can be triggered when a device is disconnected:
+     * 1. User manually disconnects the device
+     * 2. Device is out of range/powered off/etc.
+     * We should reconnect only on the second case.
+     */
+    function onDisconnect() {
+      console.log(`${device.name} disconnected`);
 
-    if (device.gatt.connected) {
-      throw new Error('Device is already connected');
-    }
+      const isIntended = !devicesCache.hasOwnProperty(device.name!);
 
-    console.log(`${device.name} connecting...`);
+      if (isIntended) {
+        delete devicesCache[device.name!];
 
-    await device.gatt.connect();
-
-    console.log(`${device.name} connected`);
-
-    device.ongattserverdisconnected = () => {
-      // TODO: reconnect https://googlechrome.github.io/samples/web-bluetooth/automatic-reconnect.html
-
-      console.log(`${deviceInfo.name} disconnected`);
-
-      delete devicesCache[deviceInfo.name];
-
-      dispatch(deviceDisconnected(deviceInfo));
-    };
-
-    window.onbeforeunload = (e) => {
-      if ((getState() as RootState).devices.devices.length > 0) {
-        e.preventDefault();
-        e.returnValue = 'Devices will be disconnected';
+        return dispatch(
+          deviceDisconnected({
+            name: device.name!,
+          }),
+        );
       }
-    };
 
-    const [modeService, batteryService] = await Promise.all([
-      device.gatt.getPrimaryService(MODE_SERVICE_UUID),
-      device.gatt.getPrimaryService(BATTERY_SERVICE_UUID),
-    ]);
+      console.log(`Reconnecting to ${device.name} ...`);
 
-    console.log(`services fetched`);
+      dispatch(
+        deviceReconnecting({
+          name: device.name!,
+        }),
+      );
 
-    const [
-      batteryCharacteristic,
-      modeCharacteristic,
-      turnOnCharacteristic,
-      color1Characteristic,
-      speedCharacteristic,
-    ] = await Promise.all([
-      batteryService.getCharacteristic(BATTERY_CHARACTERISTIC_UUID),
-      modeService.getCharacteristic(MODE_CHARACTERISTIC_UUID),
-      modeService.getCharacteristic(TURN_ON_CHARACTERISTIC_UUID),
-      modeService.getCharacteristic(COLOR1_CHARACTERISTIC_UUID),
-      modeService.getCharacteristic(SPEED_CHARACTERISTIC_UUID),
-    ]);
-
-    console.log(`characteristics fetched`);
-
-    devicesCache[device.name!] = {
-      bleDevice: device,
-      modeCharacteristic,
-      turnOnCharacteristic,
-      color1Characteristic,
-      speedCharacteristic,
-    };
-
-    const batteryValue = await batteryCharacteristic.readValue();
-    const modeValue = await modeCharacteristic.readValue();
-    const turnOnValue = await turnOnCharacteristic.readValue();
-    const color1Value = await color1Characteristic.readValue();
-    const speedValue = await speedCharacteristic.readValue();
-
-    console.log(`values read`);
-
-    let batteryLevel, mode, turnOn, color1, speed;
-
-    try {
-      batteryLevel = parseUint8Value(batteryValue);
-      mode = parseModeValue(modeValue);
-      turnOn = Boolean(parseUint8Value(turnOnValue));
-      color1 = parseColorValue(color1Value);
-      speed = parseUint8Value(speedValue);
-    } catch (e) {
-      console.log(e);
-      debugger;
-      throw e;
+      return connect();
     }
 
-    const deviceInfo: DeviceInfo = {
-      name: device.name!,
-      batteryLevel,
-      mode,
-      turnOn,
-      color1,
-      speed,
-    };
+    async function connect() {
+      console.log(`${device.name} connecting...`);
 
-    dispatch(deviceConnected(deviceInfo));
+      await device.gatt!.connect();
 
-    modeCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
-      console.log('mode characteristicvaluechanged');
-      const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+      console.log(`${device.name} connected`);
 
-      const mode = parseModeValue(value);
+      device.ongattserverdisconnected = onDisconnect;
 
-      dispatch(
-        updateDevice({
-          name: deviceInfo.name,
-          mode,
-        }),
-      );
-    });
+      if (process.env.NODE_ENV === 'production') {
+        window.onbeforeunload = (e) => {
+          const state = getState() as RootState;
 
-    turnOnCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
-      console.log('turnOn characteristicvaluechanged');
-      const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+          if (state.devices.devices.length > 0) {
+            e.preventDefault();
+            e.returnValue = 'Devices will be disconnected';
+          }
+        };
+      }
 
-      const turnOn = Boolean(parseUint8Value(value));
+      const [modeService, batteryService] = await Promise.all([
+        device.gatt!.getPrimaryService(MODE_SERVICE_UUID),
+        device.gatt!.getPrimaryService(BATTERY_SERVICE_UUID),
+      ]);
 
-      dispatch(
-        updateDevice({
-          name: deviceInfo.name,
-          turnOn,
-        }),
-      );
-    });
+      console.log(`services fetched`);
 
-    color1Characteristic.addEventListener('characteristicvaluechanged', (e) => {
-      console.log('color1 characteristicvaluechanged');
+      const [
+        batteryCharacteristic,
+        modeCharacteristic,
+        turnOnCharacteristic,
+        color1Characteristic,
+        speedCharacteristic,
+        brightnessCharacteristic,
+      ] = await Promise.all([
+        batteryService.getCharacteristic(BATTERY_CHARACTERISTIC_UUID),
+        modeService.getCharacteristic(MODE_CHARACTERISTIC_UUID),
+        modeService.getCharacteristic(TURN_ON_CHARACTERISTIC_UUID),
+        modeService.getCharacteristic(COLOR1_CHARACTERISTIC_UUID),
+        modeService.getCharacteristic(SPEED_CHARACTERISTIC_UUID),
+        modeService.getCharacteristic(BRIGHTNESS_CHARACTERISTIC_UUID),
+      ]);
 
-      const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+      console.log(`characteristics fetched`);
 
-      const color1 = parseColorValue(value);
+      devicesCache[device.name!] = {
+        bleDevice: device,
+        modeCharacteristic,
+        turnOnCharacteristic,
+        color1Characteristic,
+        speedCharacteristic,
+        brightnessCharacteristic,
+      };
 
-      dispatch(
-        updateDevice({
-          name: deviceInfo.name,
-          color1,
-        }),
-      );
-    });
+      const batteryValue = await batteryCharacteristic.readValue();
+      const modeValue = await modeCharacteristic.readValue();
+      const turnOnValue = await turnOnCharacteristic.readValue();
+      const color1Value = await color1Characteristic.readValue();
+      const speedValue = await speedCharacteristic.readValue();
+      const brightnessValue = await brightnessCharacteristic.readValue();
 
-    speedCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
-      console.log('speed characteristicvaluechanged');
-      const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+      console.log(`values read`);
 
-      const speed = parseUint8Value(value);
+      const batteryLevel = parseUint8Value(batteryValue);
+      const mode = parseModeValue(modeValue);
+      const turnOn = Boolean(parseUint8Value(turnOnValue));
+      const color1 = parseColorValue(color1Value);
+      const speed = parseUint8Value(speedValue);
+      const brightness = parseUint8Value(brightnessValue);
 
-      dispatch(
-        updateDevice({
-          name: deviceInfo.name,
-          speed,
-        }),
-      );
-    });
+      const deviceInfo: DeviceInfo = {
+        name: device.name!,
+        isReconnecting: false,
+        batteryLevel,
+        mode,
+        turnOn,
+        color1,
+        speed,
+        brightness,
+      };
 
-    batteryCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
-      console.log('battery characteristicvaluechanged');
+      dispatch(deviceConnected(deviceInfo));
 
-      const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+      modeCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
+        console.log('mode characteristicvaluechanged');
+        const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
 
-      const batteryLevel = parseUint8Value(value);
+        const mode = parseModeValue(value);
 
-      dispatch(
-        updateDevice({
-          name: deviceInfo.name,
-          batteryLevel,
-        }),
-      );
-    });
+        dispatch(
+          updateDevice({
+            name: deviceInfo.name,
+            mode,
+          }),
+        );
+      });
 
-    await batteryCharacteristic.startNotifications();
-    await modeCharacteristic.startNotifications();
-    await turnOnCharacteristic.startNotifications();
-    await color1Characteristic.startNotifications();
-    await speedCharacteristic.startNotifications();
+      turnOnCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
+        console.log('turnOn characteristicvaluechanged');
+        const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
 
-    console.log(`notifications started`);
+        const turnOn = Boolean(parseUint8Value(value));
+
+        dispatch(
+          updateDevice({
+            name: deviceInfo.name,
+            turnOn,
+          }),
+        );
+      });
+
+      color1Characteristic.addEventListener('characteristicvaluechanged', (e) => {
+        console.log('color1 characteristicvaluechanged');
+
+        const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+
+        const color1 = parseColorValue(value);
+
+        dispatch(
+          updateDevice({
+            name: deviceInfo.name,
+            color1,
+          }),
+        );
+      });
+
+      speedCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
+        console.log('speed characteristicvaluechanged');
+        const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+
+        const speed = parseUint8Value(value);
+
+        dispatch(
+          updateDevice({
+            name: deviceInfo.name,
+            speed,
+          }),
+        );
+      });
+
+      batteryCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
+        console.log('battery characteristicvaluechanged');
+
+        const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+
+        const batteryLevel = parseUint8Value(value);
+
+        dispatch(
+          updateDevice({
+            name: deviceInfo.name,
+            batteryLevel,
+          }),
+        );
+      });
+
+      brightnessCharacteristic.addEventListener('characteristicvaluechanged', (e) => {
+        console.log('brightnessCharacteristic characteristicvaluechanged');
+
+        const value = (e.target as BluetoothRemoteGATTCharacteristic).value!;
+
+        const brightness = parseUint8Value(value);
+
+        dispatch(
+          updateDevice({
+            name: deviceInfo.name,
+            brightness,
+          }),
+        );
+      });
+
+      await batteryCharacteristic.startNotifications();
+      await modeCharacteristic.startNotifications();
+      await turnOnCharacteristic.startNotifications();
+      await color1Characteristic.startNotifications();
+      await speedCharacteristic.startNotifications();
+      await brightnessCharacteristic.startNotifications();
+
+      console.log(`notifications started`);
+    }
+
+    await connect();
   },
 );
 
@@ -265,10 +279,12 @@ export const disconnectDevice = createAsyncThunk(
       return;
     }
 
-    // `ongattserverdisconnected` event will be fired
-    await devicesCache[device.name].bleDevice.gatt?.disconnect();
+    const deviceCache = devicesCache[device.name];
 
     delete devicesCache[device.name];
+
+    // `ongattserverdisconnected` event will be fired => dispatch(deviceDisconnected(device)) will be called
+    await deviceCache.bleDevice.gatt?.disconnect();
   },
 );
 
@@ -295,6 +311,28 @@ export const setSpeed = createAsyncThunk(
     await devicesCache[name].speedCharacteristic.writeValueWithoutResponse(
       Uint8Array.of(speed),
     );
+  },
+);
+
+export const setBrightness = createAsyncThunk(
+  'devices/setBrightness',
+  async ({ name, brightness }: { name: string; brightness: number }) => {
+    if (!devicesCache[name]) {
+      throw new Error('Device not found');
+    }
+
+    await devicesCache[name].brightnessCharacteristic.writeValueWithoutResponse(
+      Uint8Array.of(brightness),
+    );
+  },
+);
+
+export const checkBluetooth = createAsyncThunk(
+  'devices/checkBluetooth',
+  async (arg, { dispatch }) => {
+    const available = await navigator.bluetooth.getAvailability();
+
+    dispatch(setBluetoothAvailable(available));
   },
 );
 
@@ -335,12 +373,38 @@ export const setColor1 = createAsyncThunk(
 );
 
 export const devicesSlice = createSlice({
-  name: 'device',
+  name: 'devices',
   initialState,
   reducers: {
+    setBluetoothAvailable(state, action: PayloadAction<boolean>) {
+      state.bluetoothEnabled = action.payload;
+    },
     deviceConnected(state, action: PayloadAction<DeviceInfo>) {
-      state.selectedDeviceIndex = state.devices.length;
-      state.devices.push(action.payload);
+      const index = state.devices.findIndex(
+        (device) => device.name === action.payload.name,
+      );
+
+      if (index === -1) {
+        state.selectedDeviceIndex = state.devices.length;
+        state.devices.push(action.payload);
+        return;
+      }
+
+      state.devices[index] = {
+        ...state.devices[index],
+        ...action.payload,
+      };
+    },
+    deviceReconnecting(state, action: PayloadAction<DeviceInfoMinimal>) {
+      const index = state.devices.findIndex(
+        (device) => device.name === action.payload.name,
+      );
+
+      if (index === -1) {
+        return;
+      }
+
+      state.devices[index].isReconnecting = true;
     },
     deviceDisconnected(state, action: PayloadAction<DeviceInfoMinimal>) {
       state.selectedDeviceIndex = Math.max(0, state.selectedDeviceIndex - 1);
@@ -377,7 +441,6 @@ export const devicesSlice = createSlice({
       })
       .addCase(addDevice.rejected, (state, action) => {
         state.connecting = false;
-        debugger;
       })
       .addCase(addDevice.pending, (state) => {
         state.connecting = true;
@@ -388,7 +451,13 @@ export const devicesSlice = createSlice({
 export const selectCurrentDevice = (state: RootState) =>
   state.devices.devices[state.devices.selectedDeviceIndex];
 
-export const { deviceConnected, deviceDisconnected, updateDevice, selectDevice } =
-  devicesSlice.actions;
+export const {
+  setBluetoothAvailable,
+  deviceConnected,
+  deviceReconnecting,
+  deviceDisconnected,
+  updateDevice,
+  selectDevice,
+} = devicesSlice.actions;
 
 export default devicesSlice.reducer;

@@ -14,8 +14,11 @@ import { BatteryIcon } from './BatteryIcon';
 import { SelectDeviceMenu } from './SelectDeviceMenu';
 
 export function TopBar() {
-  const currentDevice = useAppSelector(selectCurrentDevice);
+  const batteryLevel = useAppSelector((state) => selectCurrentDevice(state).batteryLevel);
   const connecting = useAppSelector((state) => state.devices.connecting);
+  const isReconnecting = useAppSelector(
+    (state) => selectCurrentDevice(state).isReconnecting,
+  );
   const dispatch = useAppDispatch();
 
   const handleAddDeviceClick = () => dispatch(addDevice());
@@ -24,8 +27,14 @@ export function TopBar() {
     <AppBar position="sticky" color="inherit">
       <Toolbar sx={{ justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <BatteryIcon level={currentDevice.batteryLevel} />
-          <Typography fontWeight="bold">{currentDevice.batteryLevel}%</Typography>
+          {isReconnecting ? (
+            <CircularProgress size={20} />
+          ) : (
+            <>
+              <BatteryIcon level={batteryLevel} />
+              <Typography fontWeight="bold">{batteryLevel}%</Typography>
+            </>
+          )}
         </Box>
 
         <SelectDeviceMenu />

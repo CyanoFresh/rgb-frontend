@@ -3,6 +3,7 @@ import React from 'react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import {
   selectCurrentDevice,
+  setBrightness,
   setSpeed,
   setTurnOn,
 } from '../../features/devices/devicesSlice';
@@ -22,6 +23,12 @@ export function RainbowMode() {
     console.log({ speed });
 
     dispatch(setSpeed({ name: device.name, speed }));
+  };
+
+  const onBrightnessChange = (brightness: number) => {
+    console.log({ brightness });
+
+    dispatch(setBrightness({ name: device.name, brightness }));
   };
 
   return (
@@ -44,7 +51,7 @@ export function RainbowMode() {
       <Box
         sx={{
           mt: 1,
-          mb: 4,
+          mb: 3,
           p: 3,
           background:
             'linear-gradient(to right, red, yellow, lime, aqua, blue, magenta, red)',
@@ -52,7 +59,7 @@ export function RainbowMode() {
         }}
       />
 
-      <Box sx={{ px: 2 }}>
+      <Box sx={{ px: 2, my: 1 }}>
         <Typography fontWeight="bold" textTransform="uppercase" fontSize="0.8rem">
           Speed
         </Typography>
@@ -62,6 +69,22 @@ export function RainbowMode() {
           onChangeEnd={onSpeedChange}
           minValue={0}
           maxValue={254}
+          background="#ffffff"
+          startIcon={<LightModeIcon />}
+          endIcon={<LightModeOutlinedIcon />}
+        />
+      </Box>
+
+      <Box sx={{ px: 3, my: 1 }}>
+        <Typography fontWeight="bold" textTransform="uppercase" fontSize="0.8rem">
+          Brightness
+        </Typography>
+
+        <ColorSlider
+          value={device.brightness}
+          onChangeEnd={onBrightnessChange}
+          minValue={1}
+          maxValue={255}
           background="#ffffff"
           startIcon={<LightModeIcon />}
           endIcon={<LightModeOutlinedIcon />}
