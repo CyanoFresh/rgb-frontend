@@ -75,7 +75,7 @@ export function RainbowMode() {
         />
       </Box>
 
-      <Box sx={{ px: 3, my: 1 }}>
+      <Box sx={{ px: 2, my: 1 }}>
         <Typography fontWeight="bold" textTransform="uppercase" fontSize="0.8rem">
           Brightness
         </Typography>
